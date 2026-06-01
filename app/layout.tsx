@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import BackNavigationFix from "@/components/BackNavigationFix";
 
 export const metadata: Metadata = {
   title: "Scolamove — Séjours linguistiques scolaires clés en main",
@@ -22,7 +23,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="fr">
-      <body>{children}</body>
+      <body>
+  <BackNavigationFix />
+  {children}
+</body>
     </html>
   );
 }

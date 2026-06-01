@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Header from "@/components/Header";
 import TripCard from "@/components/TripCard";
@@ -17,51 +17,54 @@ function SejoursContent() {
   const [theme, setTheme] = useState("Tous");
   const [level, setLevel] = useState("Tous");
 
-  useEffect(() => {
-    const q = searchParams.get("q");
-    const levelParam = searchParams.get("level");
+  const loadSejours = useCallback(async () => {
+    setLoading(true);
 
-    if (q) {
-      setQuery(q);
+    const { data, error } = await supabase
+      .from("sejours")
+      .select("*")
+      .eq("hidden", false)
+      .order("country", { ascending: true })
+      .order("title", { ascending: true });
+
+    if (!error && data) {
+      setItems(data);
     }
 
-    if (levelParam) {
-      setLevel(levelParam);
-    }
-  }, [searchParams]);
-
-  useEffect(() => {
-    async function loadSejours() {
-      const { data, error } = await supabase
-        .from("sejours")
-        .select("*")
-        .eq("hidden", false)
-        .order("country", { ascending: true })
-        .order("title", { ascending: true });
-
-      if (!error && data) {
-        setItems(data);
-      }
-
-      setLoading(false);
-    }
-
-    loadSejours();
+    setLoading(false);
   }, []);
 
+  useEffect(() => {
+  const q = searchParams.get("q");
+  const levelParam = searchParams.get("level");
+  const countryParam = searchParams.get("country");
+
+  if (q) setQuery(q);
+  if (levelParam) setLevel(levelParam);
+  if (countryParam) setCountry(countryParam);
+}, [searchParams]);
+
+  useEffect(() => {
+    loadSejours();
+
+    function handlePageShow() {
+      loadSejours();
+    }
+
+    window.addEventListener("pageshow", handlePageShow);
+
+    return () => {
+      window.removeEventListener("pageshow", handlePageShow);
+    };
+  }, [loadSejours]);
+
   const countries = useMemo(
-    () => [
-      "Tous",
-      ...Array.from(new Set(items.map((item) => item.country))).sort(),
-    ],
+    () => ["Tous", ...Array.from(new Set(items.map((item) => item.country))).sort()],
     [items]
   );
 
   const regions = useMemo(
-    () => [
-      "Toutes",
-      ...Array.from(new Set(items.map((item) => item.region))).sort(),
-    ],
+    () => ["Toutes", ...Array.from(new Set(items.map((item) => item.region))).sort()],
     [items]
   );
 
@@ -91,17 +94,12 @@ function SejoursContent() {
       item.language.toLowerCase().includes(search) ||
       (item.theme || "").toLowerCase().includes(search);
 
-    const matchesCountry = country === "Tous" || item.country === country;
-    const matchesRegion = region === "Toutes" || item.region === region;
-    const matchesTheme = theme === "Tous" || item.theme === theme;
-    const matchesLevel = level === "Tous" || item.level === level;
-
     return (
       matchesSearch &&
-      matchesCountry &&
-      matchesRegion &&
-      matchesTheme &&
-      matchesLevel
+      (country === "Tous" || item.country === country) &&
+      (region === "Toutes" || item.region === region) &&
+      (theme === "Tous" || item.theme === theme) &&
+      (level === "Tous" || item.level === level)
     );
   });
 
@@ -143,10 +141,7 @@ function SejoursContent() {
 
               <label>
                 Pays
-                <select
-                  value={country}
-                  onChange={(event) => setCountry(event.target.value)}
-                >
+                <select value={country} onChange={(event) => setCountry(event.target.value)}>
                   {countries.map((value) => (
                     <option key={value}>{value}</option>
                   ))}
@@ -155,10 +150,7 @@ function SejoursContent() {
 
               <label>
                 Région
-                <select
-                  value={region}
-                  onChange={(event) => setRegion(event.target.value)}
-                >
+                <select value={region} onChange={(event) => setRegion(event.target.value)}>
                   {regions.map((value) => (
                     <option key={value}>{value}</option>
                   ))}
@@ -167,10 +159,7 @@ function SejoursContent() {
 
               <label>
                 Thème
-                <select
-                  value={theme}
-                  onChange={(event) => setTheme(event.target.value)}
-                >
+                <select value={theme} onChange={(event) => setTheme(event.target.value)}>
                   {themes.map((value) => (
                     <option key={value}>{value}</option>
                   ))}
@@ -179,10 +168,7 @@ function SejoursContent() {
 
               <label>
                 Niveau
-                <select
-                  value={level}
-                  onChange={(event) => setLevel(event.target.value)}
-                >
+                <select value={level} onChange={(event) => setLevel(event.target.value)}>
                   {levels.map((value) => (
                     <option key={value}>{value}</option>
                   ))}
@@ -199,6 +185,12 @@ function SejoursContent() {
                 ? "Chargement..."
                 : `${filteredItems.length} séjour(s) trouvé(s)`}
             </div>
+
+            {!loading && filteredItems.length === 0 && (
+              <div className="empty-section">
+                Aucun séjour ne correspond à votre recherche.
+              </div>
+            )}
 
             <div className="trip-grid catalogue-full-grid">
               {filteredItems.map((sejour) => (

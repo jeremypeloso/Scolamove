@@ -3,6 +3,7 @@ import Header from "@/components/Header";
 import QuoteForm from "@/components/QuoteForm";
 import TripsSection from "@/components/TripsSection";
 import { sejours } from "@/lib/sejours";
+import DestinationCarousel from "@/components/DestinationCarousel";
 
 const featuredSejours = sejours.filter((sejour) => sejour.featured);
 
@@ -24,19 +25,12 @@ export default function Home() {
           <div className="travel-hero-inner">
             <div className="hero-copy-panel">
               <div className="label">Voyages scolaires linguistiques</div>
-              <h1>Organisez un séjour scolaire clair, fiable et motivant.</h1>
+              <h1>Construisez un séjour scolaire serein, du programme jusqu’au transport.</h1>
               <p className="hero-text">
-                Scolamove accompagne les enseignants dans la création de voyages éducatifs
-                clés en main en Europe.
-              </p>
-              <div className="hero-actions">
-                <a href="#devis" className="btn btn-primary">
-                  Rechercher un séjour
-                </a>
-                <a href="#sejours" className="btn btn-white">
-                  Voir le catalogue
-                </a>
-              </div>
+  Scolamove accompagne les enseignants avec des voyages éducatifs clés en main
+  et une maîtrise directe du transport grâce à sa propre flotte d’autocars.
+</p>
+              
             </div>
           </div>
         </section>
@@ -59,48 +53,55 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="assistance-section">
-  <div className="container">
-    <div className="assistance-head">
+        <section className="reassurance-section">
+  <div className="container reassurance-grid">
+    <div className="reassurance-main">
       <span>Sécurité & accompagnement</span>
-      <h2>
-        Une assistance <strong>en cas d’imprévus</strong>
-      </h2>
+      <h2>Une organisation rassurante, même quand le voyage se complique.</h2>
       <p>
-        Parce qu’un voyage scolaire doit être rassurant pour l’établissement,
-        les enseignants et les familles.
+        Pour un établissement scolaire, la sérénité repose autant sur la qualité du
+        programme que sur la capacité à gérer les imprévus. Scolamove accompagne
+        les enseignants avec une organisation claire, des prestataires suivis et
+        une vraie maîtrise du transport grâce à sa flotte d’autocars.
       </p>
+
+      <div className="reassurance-proof">
+        <strong>1 interlocuteur dédié</strong>
+        <small>du premier échange jusqu’au retour du groupe</small>
+      </div>
     </div>
 
-    <div className="assistance-grid">
+    <div className="reassurance-list">
       <article>
-        <div className="assistance-icon">✓</div>
-        <h3>Garantie de conformité</h3>
-        <p>Des prestations contrôlées et adaptées aux exigences des voyages scolaires.</p>
+        <span>01</span>
+        <div>
+          <h3>Prestations contrôlées</h3>
+          <p>Des hébergements, visites et services sélectionnés pour les groupes scolaires.</p>
+        </div>
       </article>
 
       <article>
-        <div className="assistance-icon">1</div>
-        <h3>Interlocuteur unique</h3>
-        <p>Un conseiller suit votre dossier du premier échange jusqu’au retour du groupe.</p>
+        <span>02</span>
+        <div>
+          <h3>Transport maîtrisé</h3>
+          <p>Une organisation facilitée par notre propre flotte d’autocars.</p>
+        </div>
       </article>
 
       <article>
-        <div className="assistance-icon">↻</div>
-        <h3>Solutions organisées</h3>
-        <p>En cas d’annulation ou de prestation défaillante, nous cherchons une alternative.</p>
+        <span>03</span>
+        <div>
+          <h3>Solutions en cas d’imprévu</h3>
+          <p>Nous cherchons rapidement une alternative si une prestation doit être adaptée.</p>
+        </div>
       </article>
 
       <article>
-        <div className="assistance-icon">◇</div>
-        <h3>Assurances adaptées</h3>
-        <p>Des options expliquées clairement pour protéger les élèves et les accompagnateurs.</p>
-      </article>
-
-      <article>
-        <div className="assistance-icon">●</div>
-        <h3>Veille permanente</h3>
-        <p>Nous suivons les recommandations officielles et adaptons les parcours si nécessaire.</p>
+        <span>04</span>
+        <div>
+          <h3>Dossier clair pour l’établissement</h3>
+          <p>Des éléments lisibles pour présenter le projet à la direction et aux familles.</p>
+        </div>
       </article>
     </div>
   </div>
@@ -108,9 +109,12 @@ export default function Home() {
 
         <TripsSection />
 
+        <DestinationCarousel />
+
         <section className="advisor-band" id="agence">
           <div className="container advisor-inner">
             <div>
+              
               <span className="advisor-kicker">Besoin d’aide ?</span>
               <h2>Un conseiller vous aide à construire le bon séjour.</h2>
               <p>
@@ -128,7 +132,6 @@ export default function Home() {
           <div className="container">
             <div className="section-head">
               <h2>Une méthode simple.</h2>
-              <p>Un parcours pensé pour rassurer l’établissement, les familles et les élèves.</p>
             </div>
 
             <div className="process-grid">

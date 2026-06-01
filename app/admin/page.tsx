@@ -12,9 +12,18 @@ import {
 
 const ADMIN_PASSWORD = "scola2026";
 
-type AdminTab = "dashboard" | "sejours" | "settings";
+type AdminTab = "dashboard" | "highlights" | "sejours" | "settings";
 
-function buildInitialForm(sejour: SupabaseSejour) {
+type Highlight = {
+  id: string;
+  title: string;
+  image: string;
+  link: string | null;
+  position: number;
+  active: boolean;
+};
+
+function buildInitialSejourForm(sejour: SupabaseSejour) {
   return {
     slug: sejour.slug,
     title: sejour.title,
@@ -40,20 +49,34 @@ function buildInitialForm(sejour: SupabaseSejour) {
   };
 }
 
+function buildEmptyHighlight() {
+  return {
+    title: "",
+    image: "",
+    link: "",
+    position: 0,
+    active: true,
+  };
+}
+
 export default function AdminPage() {
   const [isLogged, setIsLogged] = useState(false);
   const [password, setPassword] = useState("");
   const [loginError, setLoginError] = useState("");
   const [activeTab, setActiveTab] = useState<AdminTab>("dashboard");
+
   const [sejours, setSejours] = useState<SupabaseSejour[]>([]);
   const [selectedId, setSelectedId] = useState("");
   const [search, setSearch] = useState("");
   const [countryFilter, setCountryFilter] = useState("Tous");
-  const [form, setForm] = useState<ReturnType<typeof buildInitialForm> | null>(
-    null
-  );
-  const [saveStatus, setSaveStatus] = useState("");
+  const [sejourForm, setSejourForm] =
+    useState<ReturnType<typeof buildInitialSejourForm> | null>(null);
 
+  const [highlights, setHighlights] = useState<Highlight[]>([]);
+  const [selectedHighlightId, setSelectedHighlightId] = useState("");
+  const [highlightForm, setHighlightForm] = useState(buildEmptyHighlight());
+
+  const [saveStatus, setSaveStatus] = useState("");
   const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
@@ -63,6 +86,7 @@ export default function AdminPage() {
   useEffect(() => {
     if (isLogged) {
       loadSejours();
+      loadHighlights();
     }
   }, [isLogged]);
 
@@ -83,24 +107,69 @@ export default function AdminPage() {
 
     if (!selectedId && rows[0]) {
       setSelectedId(rows[0].id);
-      setForm(buildInitialForm(rows[0]));
+      setSejourForm(buildInitialSejourForm(rows[0]));
+    }
+  }
+
+  async function loadHighlights() {
+    const { data, error } = await supabase
+      .from("highlights")
+      .select("*")
+      .order("position", { ascending: true })
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      setSaveStatus(`Erreur highlights : ${error.message}`);
+      return;
+    }
+
+    const rows = (data || []) as Highlight[];
+    setHighlights(rows);
+
+    if (!selectedHighlightId && rows[0]) {
+      setSelectedHighlightId(rows[0].id);
+      setHighlightForm({
+        title: rows[0].title,
+        image: rows[0].image,
+        link: rows[0].link || "",
+        position: rows[0].position,
+        active: rows[0].active,
+      });
     }
   }
 
   const selectedSejour =
     sejours.find((sejour) => sejour.id === selectedId) || sejours[0];
 
+  const selectedHighlight =
+    highlights.find((highlight) => highlight.id === selectedHighlightId) ||
+    null;
+
   useEffect(() => {
     if (selectedSejour) {
-      setForm(buildInitialForm(selectedSejour));
+      setSejourForm(buildInitialSejourForm(selectedSejour));
       setSaveStatus("");
     }
   }, [selectedSejour?.id]);
+
+  useEffect(() => {
+    if (selectedHighlight) {
+      setHighlightForm({
+        title: selectedHighlight.title,
+        image: selectedHighlight.image,
+        link: selectedHighlight.link || "",
+        position: selectedHighlight.position,
+        active: selectedHighlight.active,
+      });
+      setSaveStatus("");
+    }
+  }, [selectedHighlight?.id]);
 
   const visibleSejours = sejours.filter((sejour) => !sejour.hidden);
   const featuredSejours = sejours.filter(
     (sejour) => sejour.featured && !sejour.hidden
   );
+  const activeHighlights = highlights.filter((highlight) => highlight.active);
 
   const countries = useMemo(() => {
     return [
@@ -142,11 +211,18 @@ export default function AdminPage() {
     setIsLogged(false);
   }
 
-  function updateForm(field: string, value: string | boolean) {
-    if (!form) return;
+  function updateSejourForm(field: string, value: string | boolean) {
+    if (!sejourForm) return;
 
-    setForm({
-      ...form,
+    setSejourForm({
+      ...sejourForm,
+      [field]: value,
+    });
+  }
+
+  function updateHighlightForm(field: string, value: string | number | boolean) {
+    setHighlightForm({
+      ...highlightForm,
       [field]: value,
     });
   }
@@ -154,34 +230,34 @@ export default function AdminPage() {
   async function saveCurrentSejour(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (!selectedSejour || !form) return;
+    if (!selectedSejour || !sejourForm) return;
 
     setSaveStatus("Enregistrement en cours...");
 
     const { error } = await supabase
       .from("sejours")
       .update({
-        slug: form.slug.trim(),
-        title: form.title.trim(),
-        destination: form.destination.trim(),
-        country: form.country.trim(),
-        region: form.region.trim(),
-        language: form.language.trim(),
-        duration: form.duration.trim(),
-        level: form.level.trim(),
-        accommodation: form.accommodation.trim(),
-        transport: form.transport.trim(),
-        price: form.price.trim(),
-        image: form.image.trim(),
-        badge: form.badge.trim() || null,
-        featured: form.featured,
-        hidden: form.hidden,
-        theme: form.theme.trim() || null,
-        description: form.description.trim() || null,
-        objectives: splitLines(form.objectivesText),
-        program: textToProgram(form.programText),
-        visit_budget: form.visitBudget.trim() || null,
-        possible_visits: form.possibleVisits.trim() || null,
+        slug: sejourForm.slug.trim(),
+        title: sejourForm.title.trim(),
+        destination: sejourForm.destination.trim(),
+        country: sejourForm.country.trim(),
+        region: sejourForm.region.trim(),
+        language: sejourForm.language.trim(),
+        duration: sejourForm.duration.trim(),
+        level: sejourForm.level.trim(),
+        accommodation: sejourForm.accommodation.trim(),
+        transport: sejourForm.transport.trim(),
+        price: sejourForm.price.trim(),
+        image: sejourForm.image.trim(),
+        badge: sejourForm.badge.trim() || null,
+        featured: sejourForm.featured,
+        hidden: sejourForm.hidden,
+        theme: sejourForm.theme.trim() || null,
+        description: sejourForm.description.trim() || null,
+        objectives: splitLines(sejourForm.objectivesText),
+        program: textToProgram(sejourForm.programText),
+        visit_budget: sejourForm.visitBudget.trim() || null,
+        possible_visits: sejourForm.possibleVisits.trim() || null,
       })
       .eq("id", selectedSejour.id);
 
@@ -194,40 +270,125 @@ export default function AdminPage() {
     await loadSejours();
   }
 
-  async function uploadImage(file: File) {
-  if (!form || !selectedSejour) return;
+  async function saveHighlight(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
 
-  setUploading(true);
-  setSaveStatus("Upload de l’image en cours...");
+    setSaveStatus("Enregistrement en cours...");
 
-  const extension = file.name.split(".").pop();
-  const filePath = `${selectedSejour.slug}-${Date.now()}.${extension}`;
+    const payload = {
+      title: highlightForm.title.trim(),
+      image: highlightForm.image.trim(),
+      link: highlightForm.link.trim() || null,
+      position: Number(highlightForm.position) || 0,
+      active: Boolean(highlightForm.active),
+    };
 
-  const { error } = await supabase.storage
-    .from("sejours")
-    .upload(filePath, file, {
-      cacheControl: "3600",
-      upsert: true,
-    });
+    if (selectedHighlight) {
+      const { error } = await supabase
+        .from("highlights")
+        .update(payload)
+        .eq("id", selectedHighlight.id);
 
-  if (error) {
-    setUploading(false);
-    setSaveStatus(`Erreur upload : ${error.message}`);
-    return;
+      if (error) {
+        setSaveStatus(`Erreur : ${error.message}`);
+        return;
+      }
+
+      setSaveStatus("Carte modifiée.");
+      await loadHighlights();
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("highlights")
+      .insert(payload)
+      .select()
+      .single();
+
+    if (error) {
+      setSaveStatus(`Erreur : ${error.message}`);
+      return;
+    }
+
+    setSelectedHighlightId(data.id);
+    setSaveStatus("Carte ajoutée.");
+    await loadHighlights();
   }
 
-  const { data } = supabase.storage.from("sejours").getPublicUrl(filePath);
+  async function deleteHighlight() {
+    if (!selectedHighlight) return;
 
-  setForm({
-    ...form,
-    image: data.publicUrl,
-  });
+    const confirmation = window.confirm("Supprimer cette carte ?");
+    if (!confirmation) return;
 
-  setUploading(false);
-  setSaveStatus(
-    "Image envoyée. Clique maintenant sur Enregistrer les modifications."
-  );
-}
+    const { error } = await supabase
+      .from("highlights")
+      .delete()
+      .eq("id", selectedHighlight.id);
+
+    if (error) {
+      setSaveStatus(`Erreur : ${error.message}`);
+      return;
+    }
+
+    setSelectedHighlightId("");
+    setHighlightForm(buildEmptyHighlight());
+    setSaveStatus("Carte supprimée.");
+    await loadHighlights();
+  }
+
+  function createNewHighlight() {
+    setSelectedHighlightId("");
+    setHighlightForm(buildEmptyHighlight());
+    setSaveStatus("");
+  }
+
+  async function uploadImage(file: File, target: "sejour" | "highlight") {
+    setUploading(true);
+    setSaveStatus("Upload de l’image en cours...");
+
+    const extension = file.name.split(".").pop();
+    const baseName =
+      target === "sejour"
+        ? selectedSejour?.slug || "sejour"
+        : selectedHighlight?.id || "highlight";
+
+    const filePath = `${target}-${baseName}-${Date.now()}.${extension}`;
+
+    const { error } = await supabase.storage
+      .from("sejours")
+      .upload(filePath, file, {
+        cacheControl: "3600",
+        upsert: true,
+      });
+
+    if (error) {
+      setUploading(false);
+      setSaveStatus(`Erreur upload : ${error.message}`);
+      return;
+    }
+
+    const { data } = supabase.storage.from("sejours").getPublicUrl(filePath);
+
+    if (target === "sejour" && sejourForm) {
+      setSejourForm({
+        ...sejourForm,
+        image: data.publicUrl,
+      });
+    }
+
+    if (target === "highlight") {
+      setHighlightForm({
+        ...highlightForm,
+        image: data.publicUrl,
+      });
+    }
+
+    setUploading(false);
+    setSaveStatus(
+      "Image envoyée. Clique maintenant sur Enregistrer pour la publier."
+    );
+  }
 
   if (!isLogged) {
     return (
@@ -275,6 +436,13 @@ export default function AdminPage() {
           </button>
 
           <button
+            className={activeTab === "highlights" ? "active" : ""}
+            onClick={() => setActiveTab("highlights")}
+          >
+            À ne pas manquer
+          </button>
+
+          <button
             className={activeTab === "sejours" ? "active" : ""}
             onClick={() => setActiveTab("sejours")}
           >
@@ -300,6 +468,7 @@ export default function AdminPage() {
             <span>Administration</span>
             <h1>
               {activeTab === "dashboard" && "Tableau de bord"}
+              {activeTab === "highlights" && "À ne pas manquer"}
               {activeTab === "sejours" && "Fiches voyages"}
               {activeTab === "settings" && "Réglages"}
             </h1>
@@ -324,23 +493,174 @@ export default function AdminPage() {
               </article>
 
               <article className="admin-stat">
-                <span>Séjours phares</span>
-                <strong>{featuredSejours.length}</strong>
+                <span>À ne pas manquer</span>
+                <strong>{activeHighlights.length}</strong>
               </article>
             </div>
 
             <div className="admin-panel">
               <h2>Gestion Supabase active</h2>
               <p>
-                Les fiches voyages sont maintenant lues et modifiées depuis
-                Supabase. Les changements enregistrés ici sont visibles sur le
-                site public.
+                Les fiches voyages et les cartes “À ne pas manquer” sont
+                maintenant lues et modifiées depuis Supabase.
               </p>
             </div>
           </>
         )}
 
-        {activeTab === "sejours" && selectedSejour && form && (
+        {activeTab === "highlights" && (
+          <div className="admin-sejours-layout">
+            <aside className="admin-panel admin-sejours-list-panel">
+              <div className="admin-list-head">
+                <h2>Cartes</h2>
+                <button type="button" onClick={createNewHighlight}>
+                  Nouvelle carte
+                </button>
+              </div>
+
+              <div className="admin-highlight-list">
+                {highlights.map((highlight) => (
+                  <button
+                    key={highlight.id}
+                    type="button"
+                    className={
+                      highlight.id === selectedHighlightId
+                        ? "admin-highlight-row active"
+                        : "admin-highlight-row"
+                    }
+                    onClick={() => setSelectedHighlightId(highlight.id)}
+                  >
+                    <img src={highlight.image} alt="" />
+                    <span>
+                      <strong>{highlight.title}</strong>
+                      <small>
+                        Ordre {highlight.position} ·{" "}
+                        {highlight.active ? "Actif" : "Masqué"}
+                      </small>
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </aside>
+
+            <form className="admin-panel admin-form" onSubmit={saveHighlight}>
+              <div className="admin-edit-head">
+                <div>
+                  <span>Carte sélectionnée</span>
+                  <h2>{selectedHighlight ? "Modifier la carte" : "Nouvelle carte"}</h2>
+                </div>
+              </div>
+
+              <div className="admin-preview-card">
+                {highlightForm.image ? (
+                  <img src={highlightForm.image} alt="" />
+                ) : (
+                  <div className="admin-empty-image">Image</div>
+                )}
+
+                <div>
+                  <strong>{highlightForm.title || "Titre de la carte"}</strong>
+                  <span>{highlightForm.link || "Lien non renseigné"}</span>
+                </div>
+              </div>
+
+              <label>
+                Titre
+                <input
+                  value={highlightForm.title}
+                  onChange={(event) =>
+                    updateHighlightForm("title", event.target.value)
+                  }
+                  placeholder="Ex : Circuits en Asie"
+                />
+              </label>
+
+              <div className="admin-image-field">
+                <label>
+                  Image actuelle
+                  <input
+                    value={highlightForm.image}
+                    onChange={(event) =>
+                      updateHighlightForm("image", event.target.value)
+                    }
+                    placeholder="L’URL sera remplie automatiquement après l’upload"
+                  />
+                </label>
+
+                <label className="admin-upload-box">
+                  <span>Télécharger une nouvelle image</span>
+                  <strong>
+                    {uploading ? "Upload en cours..." : "Choisir une image"}
+                  </strong>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    disabled={uploading}
+                    onChange={(event) => {
+                      const file = event.target.files?.[0];
+                      if (file) uploadImage(file, "highlight");
+                    }}
+                  />
+                </label>
+              </div>
+
+              <label>
+                Lien
+                <input
+                  value={highlightForm.link}
+                  onChange={(event) =>
+                    updateHighlightForm("link", event.target.value)
+                  }
+                  placeholder="/sejours ou https://..."
+                />
+              </label>
+
+              <label>
+                Ordre d’affichage
+                <input
+                  type="number"
+                  value={highlightForm.position}
+                  onChange={(event) =>
+                    updateHighlightForm("position", Number(event.target.value))
+                  }
+                />
+              </label>
+
+              <div className="admin-checks">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={highlightForm.active}
+                    onChange={(event) =>
+                      updateHighlightForm("active", event.target.checked)
+                    }
+                  />
+                  Afficher cette carte sur le site
+                </label>
+              </div>
+
+              <div className="admin-editor-actions">
+                <button type="submit">
+                  {selectedHighlight ? "Enregistrer" : "Ajouter la carte"}
+                </button>
+
+                {selectedHighlight && (
+                  <button
+                    type="button"
+                    className="admin-secondary-button"
+                    onClick={deleteHighlight}
+                  >
+                    Supprimer
+                  </button>
+                )}
+              </div>
+
+              {saveStatus && <p className="admin-save-status">{saveStatus}</p>}
+            </form>
+          </div>
+        )}
+
+        {activeTab === "sejours" && selectedSejour && sejourForm && (
           <div className="admin-sejours-layout">
             <aside className="admin-panel admin-sejours-list-panel">
               <div className="admin-list-head">
@@ -404,13 +724,13 @@ export default function AdminPage() {
               </div>
 
               <div className="admin-preview-card">
-                <img src={form.image} alt="" />
+                <img src={sejourForm.image} alt="" />
 
                 <div>
-                  {form.badge && <em>{form.badge}</em>}
-                  <strong>{form.title}</strong>
+                  {sejourForm.badge && <em>{sejourForm.badge}</em>}
+                  <strong>{sejourForm.title}</strong>
                   <span>
-                    {form.destination} · {form.duration}
+                    {sejourForm.destination} · {sejourForm.duration}
                   </span>
                 </div>
               </div>
@@ -419,25 +739,29 @@ export default function AdminPage() {
                 <label>
                   Slug URL
                   <input
-                    value={form.slug}
-                    onChange={(event) => updateForm("slug", event.target.value)}
+                    value={sejourForm.slug}
+                    onChange={(event) =>
+                      updateSejourForm("slug", event.target.value)
+                    }
                   />
                 </label>
 
                 <label>
                   Titre
                   <input
-                    value={form.title}
-                    onChange={(event) => updateForm("title", event.target.value)}
+                    value={sejourForm.title}
+                    onChange={(event) =>
+                      updateSejourForm("title", event.target.value)
+                    }
                   />
                 </label>
 
                 <label>
                   Destination
                   <input
-                    value={form.destination}
+                    value={sejourForm.destination}
                     onChange={(event) =>
-                      updateForm("destination", event.target.value)
+                      updateSejourForm("destination", event.target.value)
                     }
                   />
                 </label>
@@ -445,9 +769,9 @@ export default function AdminPage() {
                 <label>
                   Pays
                   <input
-                    value={form.country}
+                    value={sejourForm.country}
                     onChange={(event) =>
-                      updateForm("country", event.target.value)
+                      updateSejourForm("country", event.target.value)
                     }
                   />
                 </label>
@@ -455,17 +779,19 @@ export default function AdminPage() {
                 <label>
                   Région
                   <input
-                    value={form.region}
-                    onChange={(event) => updateForm("region", event.target.value)}
+                    value={sejourForm.region}
+                    onChange={(event) =>
+                      updateSejourForm("region", event.target.value)
+                    }
                   />
                 </label>
 
                 <label>
                   Thème / langue
                   <input
-                    value={form.language}
+                    value={sejourForm.language}
                     onChange={(event) =>
-                      updateForm("language", event.target.value)
+                      updateSejourForm("language", event.target.value)
                     }
                   />
                 </label>
@@ -473,17 +799,19 @@ export default function AdminPage() {
                 <label>
                   Catégorie
                   <input
-                    value={form.theme}
-                    onChange={(event) => updateForm("theme", event.target.value)}
+                    value={sejourForm.theme}
+                    onChange={(event) =>
+                      updateSejourForm("theme", event.target.value)
+                    }
                   />
                 </label>
 
                 <label>
                   Durée
                   <input
-                    value={form.duration}
+                    value={sejourForm.duration}
                     onChange={(event) =>
-                      updateForm("duration", event.target.value)
+                      updateSejourForm("duration", event.target.value)
                     }
                   />
                 </label>
@@ -491,17 +819,19 @@ export default function AdminPage() {
                 <label>
                   Niveau scolaire
                   <input
-                    value={form.level}
-                    onChange={(event) => updateForm("level", event.target.value)}
+                    value={sejourForm.level}
+                    onChange={(event) =>
+                      updateSejourForm("level", event.target.value)
+                    }
                   />
                 </label>
 
                 <label>
                   Hébergement
                   <input
-                    value={form.accommodation}
+                    value={sejourForm.accommodation}
                     onChange={(event) =>
-                      updateForm("accommodation", event.target.value)
+                      updateSejourForm("accommodation", event.target.value)
                     }
                   />
                 </label>
@@ -509,9 +839,9 @@ export default function AdminPage() {
                 <label>
                   Transport
                   <input
-                    value={form.transport}
+                    value={sejourForm.transport}
                     onChange={(event) =>
-                      updateForm("transport", event.target.value)
+                      updateSejourForm("transport", event.target.value)
                     }
                   />
                 </label>
@@ -519,60 +849,60 @@ export default function AdminPage() {
                 <label>
                   Prix
                   <input
-                    value={form.price}
-                    onChange={(event) => updateForm("price", event.target.value)}
+                    value={sejourForm.price}
+                    onChange={(event) =>
+                      updateSejourForm("price", event.target.value)
+                    }
                   />
                 </label>
 
                 <label>
                   Badge optionnel
                   <input
-                    value={form.badge}
-                    onChange={(event) => updateForm("badge", event.target.value)}
+                    value={sejourForm.badge}
+                    onChange={(event) =>
+                      updateSejourForm("badge", event.target.value)
+                    }
                     placeholder="Ex : Nouveauté, Best-seller..."
                   />
                 </label>
               </div>
 
               <div className="admin-image-field">
-  <label>
-    Image actuelle
-    <input
-      value={form.image}
-      onChange={(event) => updateForm("image", event.target.value)}
-      placeholder="L’URL sera remplie automatiquement après l’upload"
-    />
-  </label>
+                <label>
+                  Image actuelle
+                  <input
+                    value={sejourForm.image}
+                    onChange={(event) =>
+                      updateSejourForm("image", event.target.value)
+                    }
+                    placeholder="L’URL sera remplie automatiquement après l’upload"
+                  />
+                </label>
 
-  <label className="admin-upload-box">
-    <span>Télécharger une nouvelle image</span>
-    <strong>{uploading ? "Upload en cours..." : "Choisir une image"}</strong>
-    <input
-      type="file"
-      accept="image/*"
-      disabled={uploading}
-      onChange={(event) => {
-        const file = event.target.files?.[0];
-
-        if (file) {
-          uploadImage(file);
-        }
-      }}
-    />
-  </label>
-
-  <p>
-    Après avoir choisi une image, clique sur{" "}
-    <strong>Enregistrer les modifications</strong> pour la publier.
-  </p>
-</div>
+                <label className="admin-upload-box">
+                  <span>Télécharger une nouvelle image</span>
+                  <strong>
+                    {uploading ? "Upload en cours..." : "Choisir une image"}
+                  </strong>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    disabled={uploading}
+                    onChange={(event) => {
+                      const file = event.target.files?.[0];
+                      if (file) uploadImage(file, "sejour");
+                    }}
+                  />
+                </label>
+              </div>
 
               <label>
                 Description
                 <textarea
-                  value={form.description}
+                  value={sejourForm.description}
                   onChange={(event) =>
-                    updateForm("description", event.target.value)
+                    updateSejourForm("description", event.target.value)
                   }
                 />
               </label>
@@ -580,9 +910,9 @@ export default function AdminPage() {
               <label>
                 Objectifs pédagogiques
                 <textarea
-                  value={form.objectivesText}
+                  value={sejourForm.objectivesText}
                   onChange={(event) =>
-                    updateForm("objectivesText", event.target.value)
+                    updateSejourForm("objectivesText", event.target.value)
                   }
                   placeholder="Un objectif par ligne"
                 />
@@ -592,9 +922,9 @@ export default function AdminPage() {
                 Programme jour par jour
                 <textarea
                   className="admin-program-textarea"
-                  value={form.programText}
+                  value={sejourForm.programText}
                   onChange={(event) =>
-                    updateForm("programText", event.target.value)
+                    updateSejourForm("programText", event.target.value)
                   }
                   placeholder={
                     "Jour 1 | Titre de la journée | Texte du programme\nJour 2 | Titre de la journée | Texte du programme"
@@ -605,9 +935,9 @@ export default function AdminPage() {
               <label>
                 Budget visites
                 <input
-                  value={form.visitBudget}
+                  value={sejourForm.visitBudget}
                   onChange={(event) =>
-                    updateForm("visitBudget", event.target.value)
+                    updateSejourForm("visitBudget", event.target.value)
                   }
                 />
               </label>
@@ -615,9 +945,9 @@ export default function AdminPage() {
               <label>
                 Autres visites possibles
                 <textarea
-                  value={form.possibleVisits}
+                  value={sejourForm.possibleVisits}
                   onChange={(event) =>
-                    updateForm("possibleVisits", event.target.value)
+                    updateSejourForm("possibleVisits", event.target.value)
                   }
                 />
               </label>
@@ -626,9 +956,9 @@ export default function AdminPage() {
                 <label>
                   <input
                     type="checkbox"
-                    checked={form.featured}
+                    checked={sejourForm.featured}
                     onChange={(event) =>
-                      updateForm("featured", event.target.checked)
+                      updateSejourForm("featured", event.target.checked)
                     }
                   />
                   Afficher dans Nos séjours phares
@@ -637,9 +967,9 @@ export default function AdminPage() {
                 <label>
                   <input
                     type="checkbox"
-                    checked={form.hidden}
+                    checked={sejourForm.hidden}
                     onChange={(event) =>
-                      updateForm("hidden", event.target.checked)
+                      updateSejourForm("hidden", event.target.checked)
                     }
                   />
                   Masquer cette fiche du site
@@ -659,9 +989,9 @@ export default function AdminPage() {
           <div className="admin-panel">
             <h2>Supabase</h2>
             <p>
-              Le dashboard est maintenant connecté à Supabase. Prochaine étape :
-              ajouter l’upload d’images directement dans le bucket
-              <strong> sejours</strong>.
+              Le dashboard est connecté à Supabase. Les fiches voyages, images
+              et cartes “À ne pas manquer” sont administrables depuis cette
+              page.
             </p>
           </div>
         )}
