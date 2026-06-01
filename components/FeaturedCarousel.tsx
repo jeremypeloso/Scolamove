@@ -1,83 +1,102 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import type { Sejour } from "@/lib/sejours";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { supabase } from "@/lib/supabase";
 
 type Highlight = {
+  id: string;
   title: string;
-  subtitle: string;
   image: string;
-  badge: string;
-  link: string;
+  link: string | null;
+  position: number;
+  active: boolean;
 };
 
-type FeaturedCarouselProps = {
-  sejours: Sejour[];
-};
-
-export default function FeaturedCarousel({ sejours }: FeaturedCarouselProps) {
+export default function FeaturedCarousel() {
   const trackRef = useRef<HTMLDivElement>(null);
-  const [adminHighlights, setAdminHighlights] = useState<Highlight[]>([]);
+  const [cards, setCards] = useState<Highlight[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const saved = localStorage.getItem("scolamove-highlights");
+  const loadHighlights = useCallback(async () => {
+    const { data, error } = await supabase
+      .from("highlights")
+      .select("*")
+      .eq("active", true)
+      .order("position", { ascending: true })
+      .order("created_at", { ascending: false });
 
-    if (saved) {
-      setAdminHighlights(JSON.parse(saved));
+    if (!error && data) {
+      setCards(data as Highlight[]);
     }
+
+    setLoading(false);
   }, []);
 
-  function scroll(direction: "left" | "right") {
-    if (!trackRef.current) return;
+  useEffect(() => {
+    localStorage.removeItem("scolamove-highlights");
+    sessionStorage.removeItem("scolamove-highlights-cache");
 
-    trackRef.current.scrollBy({
+    loadHighlights();
+
+    function handlePageShow() {
+      loadHighlights();
+      trackRef.current?.scrollTo({ left: 0, behavior: "auto" });
+    }
+
+    window.addEventListener("pageshow", handlePageShow);
+
+    return () => {
+      window.removeEventListener("pageshow", handlePageShow);
+    };
+  }, [loadHighlights]);
+
+  function scroll(direction: "left" | "right") {
+    trackRef.current?.scrollBy({
       left: direction === "left" ? -320 : 320,
       behavior: "smooth",
     });
   }
 
-  const cards =
-    adminHighlights.length > 0
-      ? adminHighlights
-      : sejours.map((sejour) => ({
-          title: sejour.title,
-          subtitle: sejour.description,
-          image: sejour.image,
-          badge: sejour.badge,
-          link: "/#devis",
-        }));
+  if (loading) return null;
+  if (!cards.length) return null;
 
   return (
     <div className="news-carousel">
       <button
-        className="news-arrow news-arrow-left"
         type="button"
+        className="news-arrow news-arrow-left"
         onClick={() => scroll("left")}
-        aria-label="Actualités précédentes"
+        aria-label="Voir les cartes précédentes"
       >
-        ‹
+        ←
       </button>
 
       <div className="news-track" ref={trackRef}>
-  {cards.map((card, index) => (
-    <a className="news-card" href={card.link || "/#devis"} key={`${card.title}-${index}`}>
-      <div className="news-img" style={{ backgroundImage: `url(${card.image})` }}>
+        {cards.map((card) => (
+          <a
+            className="news-card"
+            href={card.link || "/sejours"}
+            key={card.id}
+          >
+            <div
+              className="news-img"
+              style={{ backgroundImage: `url(${card.image})` }}
+            />
+
+            <div className="news-body">
+              <h3>{card.title}</h3>
+            </div>
+          </a>
+        ))}
       </div>
 
-      <div className="news-body">
-  <h3>{card.title}</h3>
-</div>
-    </a>
-  ))}
-</div>
-
       <button
-        className="news-arrow news-arrow-right"
         type="button"
+        className="news-arrow news-arrow-right"
         onClick={() => scroll("right")}
-        aria-label="Actualités suivantes"
+        aria-label="Voir les cartes suivantes"
       >
-        ›
+        →
       </button>
     </div>
   );

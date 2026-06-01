@@ -35,7 +35,7 @@ export default function TripCard({ sejour }: TripCardProps) {
           </div>
 
           <a href={`/sejours/${sejour.slug}`} className="btn btn-blue">
-            Voir
+            Je découvre
           </a>
         </div>
       </div>

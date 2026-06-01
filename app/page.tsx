@@ -4,8 +4,8 @@ import QuoteForm from "@/components/QuoteForm";
 import TripsSection from "@/components/TripsSection";
 import { sejours } from "@/lib/sejours";
 import DestinationCarousel from "@/components/DestinationCarousel";
+import TrustpilotReviews from "@/components/TrustpilotReviews";
 
-const featuredSejours = sejours.filter((sejour) => sejour.featured);
 
 
 const steps = [
@@ -49,7 +49,7 @@ export default function Home() {
               <h2>À ne pas manquer !</h2>
             </div>
 
-            <FeaturedCarousel sejours={featuredSejours} />
+            <FeaturedCarousel />
           </div>
         </section>
 
@@ -146,6 +146,8 @@ export default function Home() {
           </div>
         </section>
       </main>
+
+      
 
       <footer>
         <div className="footer-grid">

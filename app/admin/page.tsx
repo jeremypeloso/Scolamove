@@ -12,9 +12,23 @@ import {
 
 const ADMIN_PASSWORD = "scola2026";
 
-type AdminTab = "dashboard" | "highlights" | "sejours" | "settings";
+type AdminTab =
+  | "dashboard"
+  | "highlights"
+  | "destinations"
+  | "sejours"
+  | "settings";
 
 type Highlight = {
+  id: string;
+  title: string;
+  image: string;
+  link: string | null;
+  position: number;
+  active: boolean;
+};
+
+type Destination = {
   id: string;
   title: string;
   image: string;
@@ -59,6 +73,16 @@ function buildEmptyHighlight() {
   };
 }
 
+function buildEmptyDestination() {
+  return {
+    title: "",
+    image: "",
+    link: "",
+    position: 0,
+    active: true,
+  };
+}
+
 export default function AdminPage() {
   const [isLogged, setIsLogged] = useState(false);
   const [password, setPassword] = useState("");
@@ -76,6 +100,12 @@ export default function AdminPage() {
   const [selectedHighlightId, setSelectedHighlightId] = useState("");
   const [highlightForm, setHighlightForm] = useState(buildEmptyHighlight());
 
+  const [destinations, setDestinations] = useState<Destination[]>([]);
+  const [selectedDestinationId, setSelectedDestinationId] = useState("");
+  const [destinationForm, setDestinationForm] = useState(
+    buildEmptyDestination()
+  );
+
   const [saveStatus, setSaveStatus] = useState("");
   const [uploading, setUploading] = useState(false);
 
@@ -87,6 +117,7 @@ export default function AdminPage() {
     if (isLogged) {
       loadSejours();
       loadHighlights();
+      loadDestinations();
     }
   }, [isLogged]);
 
@@ -138,12 +169,44 @@ export default function AdminPage() {
     }
   }
 
+  async function loadDestinations() {
+    const { data, error } = await supabase
+      .from("destinations")
+      .select("*")
+      .order("position", { ascending: true })
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      setSaveStatus(`Erreur destinations : ${error.message}`);
+      return;
+    }
+
+    const rows = (data || []) as Destination[];
+    setDestinations(rows);
+
+    if (!selectedDestinationId && rows[0]) {
+      setSelectedDestinationId(rows[0].id);
+      setDestinationForm({
+        title: rows[0].title,
+        image: rows[0].image,
+        link: rows[0].link || "",
+        position: rows[0].position,
+        active: rows[0].active,
+      });
+    }
+  }
+
   const selectedSejour =
     sejours.find((sejour) => sejour.id === selectedId) || sejours[0];
 
   const selectedHighlight =
     highlights.find((highlight) => highlight.id === selectedHighlightId) ||
     null;
+
+  const selectedDestination =
+    destinations.find(
+      (destination) => destination.id === selectedDestinationId
+    ) || null;
 
   useEffect(() => {
     if (selectedSejour) {
@@ -165,11 +228,27 @@ export default function AdminPage() {
     }
   }, [selectedHighlight?.id]);
 
+  useEffect(() => {
+    if (selectedDestination) {
+      setDestinationForm({
+        title: selectedDestination.title,
+        image: selectedDestination.image,
+        link: selectedDestination.link || "",
+        position: selectedDestination.position,
+        active: selectedDestination.active,
+      });
+      setSaveStatus("");
+    }
+  }, [selectedDestination?.id]);
+
   const visibleSejours = sejours.filter((sejour) => !sejour.hidden);
   const featuredSejours = sejours.filter(
     (sejour) => sejour.featured && !sejour.hidden
   );
   const activeHighlights = highlights.filter((highlight) => highlight.active);
+  const activeDestinations = destinations.filter(
+    (destination) => destination.active
+  );
 
   const countries = useMemo(() => {
     return [
@@ -223,6 +302,16 @@ export default function AdminPage() {
   function updateHighlightForm(field: string, value: string | number | boolean) {
     setHighlightForm({
       ...highlightForm,
+      [field]: value,
+    });
+  }
+
+  function updateDestinationForm(
+    field: string,
+    value: string | number | boolean
+  ) {
+    setDestinationForm({
+      ...destinationForm,
       [field]: value,
     });
   }
@@ -343,7 +432,83 @@ export default function AdminPage() {
     setSaveStatus("");
   }
 
-  async function uploadImage(file: File, target: "sejour" | "highlight") {
+  async function saveDestination(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    setSaveStatus("Enregistrement en cours...");
+
+    const payload = {
+      title: destinationForm.title.trim(),
+      image: destinationForm.image.trim(),
+      link: destinationForm.link.trim() || null,
+      position: Number(destinationForm.position) || 0,
+      active: Boolean(destinationForm.active),
+    };
+
+    if (selectedDestination) {
+      const { error } = await supabase
+        .from("destinations")
+        .update(payload)
+        .eq("id", selectedDestination.id);
+
+      if (error) {
+        setSaveStatus(`Erreur : ${error.message}`);
+        return;
+      }
+
+      setSaveStatus("Destination modifiée.");
+      await loadDestinations();
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("destinations")
+      .insert(payload)
+      .select()
+      .single();
+
+    if (error) {
+      setSaveStatus(`Erreur : ${error.message}`);
+      return;
+    }
+
+    setSelectedDestinationId(data.id);
+    setSaveStatus("Destination ajoutée.");
+    await loadDestinations();
+  }
+
+  async function deleteDestination() {
+    if (!selectedDestination) return;
+
+    const confirmation = window.confirm("Supprimer cette destination ?");
+    if (!confirmation) return;
+
+    const { error } = await supabase
+      .from("destinations")
+      .delete()
+      .eq("id", selectedDestination.id);
+
+    if (error) {
+      setSaveStatus(`Erreur : ${error.message}`);
+      return;
+    }
+
+    setSelectedDestinationId("");
+    setDestinationForm(buildEmptyDestination());
+    setSaveStatus("Destination supprimée.");
+    await loadDestinations();
+  }
+
+  function createNewDestination() {
+    setSelectedDestinationId("");
+    setDestinationForm(buildEmptyDestination());
+    setSaveStatus("");
+  }
+
+  async function uploadImage(
+    file: File,
+    target: "sejour" | "highlight" | "destination"
+  ) {
     setUploading(true);
     setSaveStatus("Upload de l’image en cours...");
 
@@ -351,7 +516,9 @@ export default function AdminPage() {
     const baseName =
       target === "sejour"
         ? selectedSejour?.slug || "sejour"
-        : selectedHighlight?.id || "highlight";
+        : target === "highlight"
+          ? selectedHighlight?.id || "highlight"
+          : selectedDestination?.id || "destination";
 
     const filePath = `${target}-${baseName}-${Date.now()}.${extension}`;
 
@@ -384,6 +551,13 @@ export default function AdminPage() {
       });
     }
 
+    if (target === "destination") {
+      setDestinationForm({
+        ...destinationForm,
+        image: data.publicUrl,
+      });
+    }
+
     setUploading(false);
     setSaveStatus(
       "Image envoyée. Clique maintenant sur Enregistrer pour la publier."
@@ -399,7 +573,7 @@ export default function AdminPage() {
           </a>
 
           <h1>Admin Scolamove</h1>
-          <p>Connecte-toi pour modifier les fiches voyages du site.</p>
+          <p>Connecte-toi pour modifier les contenus du site.</p>
 
           <label>
             Mot de passe
@@ -443,6 +617,13 @@ export default function AdminPage() {
           </button>
 
           <button
+            className={activeTab === "destinations" ? "active" : ""}
+            onClick={() => setActiveTab("destinations")}
+          >
+            Destinations
+          </button>
+
+          <button
             className={activeTab === "sejours" ? "active" : ""}
             onClick={() => setActiveTab("sejours")}
           >
@@ -469,6 +650,7 @@ export default function AdminPage() {
             <h1>
               {activeTab === "dashboard" && "Tableau de bord"}
               {activeTab === "highlights" && "À ne pas manquer"}
+              {activeTab === "destinations" && "Destinations"}
               {activeTab === "sejours" && "Fiches voyages"}
               {activeTab === "settings" && "Réglages"}
             </h1>
@@ -488,21 +670,21 @@ export default function AdminPage() {
               </article>
 
               <article className="admin-stat">
-                <span>Fiches visibles</span>
-                <strong>{visibleSejours.length}</strong>
+                <span>Séjours phares</span>
+                <strong>{featuredSejours.length}</strong>
               </article>
 
               <article className="admin-stat">
-                <span>À ne pas manquer</span>
-                <strong>{activeHighlights.length}</strong>
+                <span>Destinations actives</span>
+                <strong>{activeDestinations.length}</strong>
               </article>
             </div>
 
             <div className="admin-panel">
               <h2>Gestion Supabase active</h2>
               <p>
-                Les fiches voyages et les cartes “À ne pas manquer” sont
-                maintenant lues et modifiées depuis Supabase.
+                Les fiches voyages, les cartes “À ne pas manquer” et les
+                destinations sont administrables depuis cette page.
               </p>
             </div>
           </>
@@ -547,7 +729,9 @@ export default function AdminPage() {
               <div className="admin-edit-head">
                 <div>
                   <span>Carte sélectionnée</span>
-                  <h2>{selectedHighlight ? "Modifier la carte" : "Nouvelle carte"}</h2>
+                  <h2>
+                    {selectedHighlight ? "Modifier la carte" : "Nouvelle carte"}
+                  </h2>
                 </div>
               </div>
 
@@ -660,6 +844,169 @@ export default function AdminPage() {
           </div>
         )}
 
+        {activeTab === "destinations" && (
+          <div className="admin-sejours-layout">
+            <aside className="admin-panel admin-sejours-list-panel">
+              <div className="admin-list-head">
+                <h2>Destinations</h2>
+                <button type="button" onClick={createNewDestination}>
+                  Nouvelle destination
+                </button>
+              </div>
+
+              <div className="admin-highlight-list">
+                {destinations.map((destination) => (
+                  <button
+                    key={destination.id}
+                    type="button"
+                    className={
+                      destination.id === selectedDestinationId
+                        ? "admin-highlight-row active"
+                        : "admin-highlight-row"
+                    }
+                    onClick={() => setSelectedDestinationId(destination.id)}
+                  >
+                    <img src={destination.image} alt="" />
+                    <span>
+                      <strong>{destination.title}</strong>
+                      <small>
+                        Ordre {destination.position} ·{" "}
+                        {destination.active ? "Actif" : "Masqué"}
+                      </small>
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </aside>
+
+            <form className="admin-panel admin-form" onSubmit={saveDestination}>
+              <div className="admin-edit-head">
+                <div>
+                  <span>Destination sélectionnée</span>
+                  <h2>
+                    {selectedDestination
+                      ? "Modifier la destination"
+                      : "Nouvelle destination"}
+                  </h2>
+                </div>
+              </div>
+
+              <div className="admin-preview-card">
+                {destinationForm.image ? (
+                  <img src={destinationForm.image} alt="" />
+                ) : (
+                  <div className="admin-empty-image">Image</div>
+                )}
+
+                <div>
+                  <strong>
+                    {destinationForm.title || "Nom de la destination"}
+                  </strong>
+                  <span>{destinationForm.link || "Lien non renseigné"}</span>
+                </div>
+              </div>
+
+              <label>
+                Nom de la destination
+                <input
+                  value={destinationForm.title}
+                  onChange={(event) =>
+                    updateDestinationForm("title", event.target.value)
+                  }
+                  placeholder="Ex : Portugal"
+                />
+              </label>
+
+              <div className="admin-image-field">
+                <label>
+                  Image actuelle
+                  <input
+                    value={destinationForm.image}
+                    onChange={(event) =>
+                      updateDestinationForm("image", event.target.value)
+                    }
+                    placeholder="L’URL sera remplie automatiquement après l’upload"
+                  />
+                </label>
+
+                <label className="admin-upload-box">
+                  <span>Télécharger une nouvelle image</span>
+                  <strong>
+                    {uploading ? "Upload en cours..." : "Choisir une image"}
+                  </strong>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    disabled={uploading}
+                    onChange={(event) => {
+                      const file = event.target.files?.[0];
+                      if (file) uploadImage(file, "destination");
+                    }}
+                  />
+                </label>
+              </div>
+
+              <label>
+                Lien
+                <input
+                  value={destinationForm.link}
+                  onChange={(event) =>
+                    updateDestinationForm("link", event.target.value)
+                  }
+                  placeholder="/sejours?country=Portugal"
+                />
+              </label>
+
+              <label>
+                Ordre d’affichage
+                <input
+                  type="number"
+                  value={destinationForm.position}
+                  onChange={(event) =>
+                    updateDestinationForm(
+                      "position",
+                      Number(event.target.value)
+                    )
+                  }
+                />
+              </label>
+
+              <div className="admin-checks">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={destinationForm.active}
+                    onChange={(event) =>
+                      updateDestinationForm("active", event.target.checked)
+                    }
+                  />
+                  Afficher cette destination sur le site
+                </label>
+              </div>
+
+              <div className="admin-editor-actions">
+                <button type="submit">
+                  {selectedDestination
+                    ? "Enregistrer"
+                    : "Ajouter la destination"}
+                </button>
+
+                {selectedDestination && (
+                  <button
+                    type="button"
+                    className="admin-secondary-button"
+                    onClick={deleteDestination}
+                  >
+                    Supprimer
+                  </button>
+                )}
+              </div>
+
+              {saveStatus && <p className="admin-save-status">{saveStatus}</p>}
+            </form>
+          </div>
+        )}
+
         {activeTab === "sejours" && selectedSejour && sejourForm && (
           <div className="admin-sejours-layout">
             <aside className="admin-panel admin-sejours-list-panel">
@@ -688,6 +1035,7 @@ export default function AdminPage() {
                 {filteredSejours.map((sejour) => (
                   <button
                     key={sejour.id}
+                    type="button"
                     className={
                       sejour.id === selectedSejour.id
                         ? "admin-sejour-row active"
@@ -711,7 +1059,10 @@ export default function AdminPage() {
               </div>
             </aside>
 
-            <form className="admin-panel admin-form" onSubmit={saveCurrentSejour}>
+            <form
+              className="admin-panel admin-form"
+              onSubmit={saveCurrentSejour}
+            >
               <div className="admin-edit-head">
                 <div>
                   <span>Fiche sélectionnée</span>
@@ -989,9 +1340,8 @@ export default function AdminPage() {
           <div className="admin-panel">
             <h2>Supabase</h2>
             <p>
-              Le dashboard est connecté à Supabase. Les fiches voyages, images
-              et cartes “À ne pas manquer” sont administrables depuis cette
-              page.
+              Le dashboard est connecté à Supabase. Les fiches voyages, images,
+              cartes “À ne pas manquer” et destinations sont administrables ici.
             </p>
           </div>
         )}
