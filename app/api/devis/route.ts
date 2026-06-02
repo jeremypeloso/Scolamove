@@ -1,28 +1,51 @@
 import { NextResponse } from "next/server";
+import { supabase } from "@/lib/supabase";
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
 
-    const nom = String(body.nom || "").trim();
+    const teacherName = String(body.teacherName || "").trim();
     const email = String(body.email || "").trim();
-    const eleves = String(body.eleves || "").trim();
-    const periode = String(body.periode || "").trim();
 
-    if (!nom || !email || !eleves || !periode) {
+    if (!teacherName || !email) {
       return NextResponse.json(
-        { error: "Merci de remplir tous les champs obligatoires." },
+        { error: "Le nom et l’email sont obligatoires." },
         { status: 400 }
       );
     }
 
-    console.log("Nouvelle demande de devis Scolamove :", {
-      ...body,
-      date: new Date().toISOString(),
+    const { error } = await supabase.from("devis").insert({
+      school_name: String(body.schoolName || "").trim() || null,
+      teacher_name: teacherName,
+      email,
+      phone: String(body.phone || "").trim() || null,
+
+      departure_city: String(body.departureCity || "").trim() || null,
+      destination: String(body.destination || "").trim() || null,
+      period: String(body.period || "").trim() || null,
+      level: String(body.level || "").trim() || null,
+      students_count: String(body.studentsCount || "").trim() || null,
+
+      message: String(body.message || "").trim() || null,
+
+      sejour_slug: String(body.sejourSlug || "").trim() || null,
+      sejour_title: String(body.sejourTitle || "").trim() || null,
+      sejour_destination: String(body.sejourDestination || "").trim() || null,
+
+      status: "nouveau",
     });
 
+    if (error) {
+      return NextResponse.json(
+        { error: `Erreur Supabase : ${error.message}` },
+        { status: 500 }
+      );
+    }
+
     return NextResponse.json({
-      message: "Votre demande a bien été envoyée. Nous revenons vers vous rapidement.",
+      message:
+        "Votre demande a bien été envoyée. Nous revenons vers vous rapidement.",
     });
   } catch {
     return NextResponse.json(

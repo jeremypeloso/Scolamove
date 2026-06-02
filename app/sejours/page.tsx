@@ -45,18 +45,28 @@ function SejoursContent() {
 }, [searchParams]);
 
   useEffect(() => {
-    loadSejours();
+  let active = true;
 
-    function handlePageShow() {
-      loadSejours();
+  async function refresh() {
+    if (!active) return;
+    await loadSejours();
+  }
+
+  refresh();
+
+  function handlePageShow(event: PageTransitionEvent) {
+    if (event.persisted) {
+      refresh();
     }
+  }
 
-    window.addEventListener("pageshow", handlePageShow);
+  window.addEventListener("pageshow", handlePageShow);
 
-    return () => {
-      window.removeEventListener("pageshow", handlePageShow);
-    };
-  }, [loadSejours]);
+  return () => {
+    active = false;
+    window.removeEventListener("pageshow", handlePageShow);
+  };
+}, [loadSejours]);
 
   const countries = useMemo(
     () => ["Tous", ...Array.from(new Set(items.map((item) => item.country))).sort()],

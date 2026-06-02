@@ -1,12 +1,8 @@
+import DestinationCarousel from "@/components/DestinationCarousel";
 import FeaturedCarousel from "@/components/FeaturedCarousel";
 import Header from "@/components/Header";
 import QuoteForm from "@/components/QuoteForm";
 import TripsSection from "@/components/TripsSection";
-import { sejours } from "@/lib/sejours";
-import DestinationCarousel from "@/components/DestinationCarousel";
-import TrustpilotReviews from "@/components/TrustpilotReviews";
-
-
 
 const steps = [
   ["1", "Décrivez votre projet", "Destination, dates, niveau, effectif et budget."],
@@ -27,23 +23,22 @@ export default function Home() {
               <div className="label">Voyages scolaires linguistiques</div>
               <h1>Construisez un séjour scolaire serein, du programme jusqu’au transport.</h1>
               <p className="hero-text">
-  Scolamove accompagne les enseignants avec des voyages éducatifs clés en main
-  et une maîtrise directe du transport grâce à sa propre flotte d’autocars.
-</p>
-              
+                Scolamove accompagne les enseignants avec des voyages éducatifs clés en main
+                et une maîtrise directe du transport grâce à sa propre flotte d’autocars.
+              </p>
             </div>
           </div>
         </section>
 
         <section className="search-band" id="devis">
-  <div className="container">
-    <div className="search-shell clean-search-shell">
-      <QuoteForm />
-    </div>
-  </div>
-</section>
+          <div className="container">
+            <div className="search-shell clean-search-shell">
+              <QuoteForm />
+            </div>
+          </div>
+        </section>
 
-        <section className="spotlight-section">
+        <section className="spotlight-section compact-spotlight-section">
           <div className="container">
             <div className="section-head">
               <h2>À ne pas manquer !</h2>
@@ -54,58 +49,67 @@ export default function Home() {
         </section>
 
         <section className="reassurance-section">
-  <div className="container reassurance-grid">
-    <div className="reassurance-main">
-      <span>Sécurité & accompagnement</span>
-      <h2>Une organisation rassurante, même quand le voyage se complique.</h2>
-      <p>
-        Pour un établissement scolaire, la sérénité repose autant sur la qualité du
-        programme que sur la capacité à gérer les imprévus. Scolamove accompagne
-        les enseignants avec une organisation claire, des prestataires suivis et
-        une vraie maîtrise du transport grâce à sa flotte d’autocars.
-      </p>
+          <div className="container reassurance-grid">
+            <div className="reassurance-main">
+              <span>Sécurité & accompagnement</span>
+              <h2>Une organisation rassurante, même quand le voyage se complique.</h2>
+              <p>
+                Pour un établissement scolaire, la sérénité repose autant sur la qualité du
+                programme que sur la capacité à gérer les imprévus. Scolamove accompagne
+                les enseignants avec une organisation claire, des prestataires suivis et
+                une vraie maîtrise du transport grâce à sa flotte d’autocars.
+              </p>
 
-      <div className="reassurance-proof">
-        <strong>1 interlocuteur dédié</strong>
-        <small>du premier échange jusqu’au retour du groupe</small>
-      </div>
-    </div>
+              <div className="reassurance-proof">
+                <strong>1 interlocuteur dédié</strong>
+                <small>du premier échange jusqu’au retour du groupe</small>
+              </div>
+            </div>
 
-    <div className="reassurance-list">
-      <article>
-        <span>01</span>
-        <div>
-          <h3>Prestations contrôlées</h3>
-          <p>Des hébergements, visites et services sélectionnés pour les groupes scolaires.</p>
-        </div>
-      </article>
+            <div className="reassurance-list">
+              <article>
+                <span>01</span>
+                <div>
+                  <h3>Prestations contrôlées</h3>
+                  <p>
+                    Des hébergements, visites et services sélectionnés pour les groupes
+                    scolaires.
+                  </p>
+                </div>
+              </article>
 
-      <article>
-        <span>02</span>
-        <div>
-          <h3>Transport maîtrisé</h3>
-          <p>Une organisation facilitée par notre propre flotte d’autocars.</p>
-        </div>
-      </article>
+              <article>
+                <span>02</span>
+                <div>
+                  <h3>Transport maîtrisé</h3>
+                  <p>Une organisation facilitée par notre propre flotte d’autocars.</p>
+                </div>
+              </article>
 
-      <article>
-        <span>03</span>
-        <div>
-          <h3>Solutions en cas d’imprévu</h3>
-          <p>Nous cherchons rapidement une alternative si une prestation doit être adaptée.</p>
-        </div>
-      </article>
+              <article>
+                <span>03</span>
+                <div>
+                  <h3>Solutions en cas d’imprévu</h3>
+                  <p>
+                    Nous cherchons rapidement une alternative si une prestation doit être
+                    adaptée.
+                  </p>
+                </div>
+              </article>
 
-      <article>
-        <span>04</span>
-        <div>
-          <h3>Dossier clair pour l’établissement</h3>
-          <p>Des éléments lisibles pour présenter le projet à la direction et aux familles.</p>
-        </div>
-      </article>
-    </div>
-  </div>
-</section>
+              <article>
+                <span>04</span>
+                <div>
+                  <h3>Dossier clair pour l’établissement</h3>
+                  <p>
+                    Des éléments lisibles pour présenter le projet à la direction et aux
+                    familles.
+                  </p>
+                </div>
+              </article>
+            </div>
+          </div>
+        </section>
 
         <TripsSection />
 
@@ -114,7 +118,6 @@ export default function Home() {
         <section className="advisor-band" id="agence">
           <div className="container advisor-inner">
             <div>
-              
               <span className="advisor-kicker">Besoin d’aide ?</span>
               <h2>Un conseiller vous aide à construire le bon séjour.</h2>
               <p>
@@ -147,8 +150,6 @@ export default function Home() {
         </section>
       </main>
 
-      
-
       <footer>
         <div className="footer-grid">
           <div>
@@ -164,7 +165,7 @@ export default function Home() {
           </div>
           <div>
             <h3>Enseignants</h3>
-            <a href="#devis">Créer un projet</a>
+            <a href="/espace-enseignant">Espace enseignant</a>
             <a href="#process">Comment ça marche</a>
             <a href="#agence">Accompagnement</a>
           </div>

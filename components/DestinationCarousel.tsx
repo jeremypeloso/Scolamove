@@ -69,7 +69,7 @@ export default function DestinationCarousel() {
   if (!items.length) return null;
 
   return (
-    <section className="destination-section">
+    <section className="destination-section" id="destinations">
       <div className="container">
         <div className="destination-head">
           <div>
@@ -82,7 +82,7 @@ export default function DestinationCarousel() {
         </div>
 
         <div className="destination-carousel">
-          <button type="button" onClick={() => scroll("left")}>
+          <button type="button" onClick={() => scroll("left")} aria-label="Voir les destinations précédentes">
             ←
           </button>
 
@@ -95,14 +95,14 @@ export default function DestinationCarousel() {
               >
                 <img src={item.image} alt={item.title} />
                 <span className="destination-label">
-  <i aria-hidden="true" />
-  {item.title}
-</span>
+                  <i aria-hidden="true" />
+                  {item.title}
+                </span>
               </a>
             ))}
           </div>
 
-          <button type="button" onClick={() => scroll("right")}>
+          <button type="button" onClick={() => scroll("right")} aria-label="Voir les destinations suivantes">
             →
           </button>
         </div>

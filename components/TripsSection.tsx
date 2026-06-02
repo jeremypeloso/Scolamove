@@ -35,19 +35,28 @@ export default function TripsSection() {
   }, []);
 
   useEffect(() => {
-    loadSejours();
+  let active = true;
 
-    function handlePageShow() {
-      setLoading(false);
-      loadSejours();
+  async function refresh() {
+    if (!active) return;
+    await loadSejours();
+  }
+
+  refresh();
+
+  function handlePageShow(event: PageTransitionEvent) {
+    if (event.persisted) {
+      refresh();
     }
+  }
 
-    window.addEventListener("pageshow", handlePageShow);
+  window.addEventListener("pageshow", handlePageShow);
 
-    return () => {
-      window.removeEventListener("pageshow", handlePageShow);
-    };
-  }, [loadSejours]);
+  return () => {
+    active = false;
+    window.removeEventListener("pageshow", handlePageShow);
+  };
+}, [loadSejours]);
 
   const featured = items.filter((sejour) => sejour.featured).slice(0, 6);
   const catalogue = items.filter((sejour) => !sejour.featured).slice(0, 9);

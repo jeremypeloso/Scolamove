@@ -239,13 +239,13 @@ export default function SejourPage() {
                   </div>
                 </dl>
 
-                <a href="/#devis" className="btn btn-primary">
-                  Demander un devis
-                </a>
+                <a href={`/devis?sejour=${sejour.slug}`} className="btn btn-primary">
+  Demander un devis
+</a>
 
-                <a href="/#sejours" className="btn btn-white">
-                  Retour au catalogue
-                </a>
+                <a href="/sejours" className="btn btn-white">
+  Retour au catalogue
+</a>
               </div>
             </aside>
           </div>

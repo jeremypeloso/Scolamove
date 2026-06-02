@@ -2016,23 +2016,49 @@ footer p {
 .detail-nav-wrap {
   padding: 0 6%;
   background: white;
-  border-bottom: 1px solid #e6edf5;
+  border-bottom: 1px solid #e7edf5;
   position: sticky;
   top: 74px;
   z-index: 20;
 }
 
 .detail-nav {
+  max-width: 1240px;
+  margin: auto;
   display: flex;
-  gap: 22px;
+  gap: 6px;
   overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.detail-nav::-webkit-scrollbar {
+  display: none;
 }
 
 .detail-nav a {
-  padding: 16px 0;
+  flex: 0 0 auto;
   color: var(--navy);
-  font-weight: 700;
+  padding: 17px 14px 15px;
+  border-bottom: 3px solid transparent;
+  font-size: 14px;
+  font-weight: 800;
   white-space: nowrap;
+  transition: color 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+}
+
+.detail-nav a:hover {
+  color: var(--red);
+  border-bottom-color: var(--red);
+  background: #fff8f5;
+}
+
+.detail-nav a:last-child {
+  color: var(--red);
+}
+
+.detail-nav a:last-child:hover {
+  color: var(--navy);
+  border-bottom-color: var(--navy);
 }
 
 .detail-main {
@@ -3710,11 +3736,9 @@ svg {
   }
 
   .nav {
-    min-height: 74px;
-    padding: 10px 18px;
-    justify-content: center;
-    gap: 0;
-  }
+  align-items: center !important;
+  gap: 6px !important;
+}
 
   .logo-image {
     height: auto;
@@ -4235,3 +4259,1046 @@ svg {
     grid-template-columns: 1fr;
   }
 }
+
+/* =========================================================
+   Final home layout - keep this block last
+   ========================================================= */
+
+.travel-hero {
+  min-height: 700px !important;
+  padding: 72px 6% 130px !important;
+  background-size: cover !important;
+  background-position: center center !important;
+}
+
+.travel-hero-inner {
+  min-height: 360px;
+  display: flex;
+  align-items: flex-start;
+}
+
+.hero-copy-panel {
+  max-width: 980px !important;
+}
+
+.hero-copy-panel h1,
+.travel-hero h1 {
+  max-width: 960px;
+  font-size: clamp(38px, 4.6vw, 62px);
+  line-height: 1.05;
+  letter-spacing: -1.2px;
+  font-weight: 600;
+}
+
+.hero-text {
+  max-width: 760px;
+  font-weight: 400;
+}
+
+.search-band {
+  padding: 0 6% !important;
+  margin-top: -155px !important;
+  transform: none !important;
+  position: relative !important;
+  z-index: 30 !important;
+}
+
+.clean-search-shell {
+  border-radius: 18px !important;
+}
+
+.clean-search-shell .search-field,
+.agency-search label,
+.travel-search .search-field {
+  padding: 11px 16px !important;
+}
+
+.clean-search-shell .search-submit,
+.agency-search button,
+.travel-search .search-submit {
+  min-height: 58px !important;
+}
+
+.compact-spotlight-section,
+.spotlight-section {
+  padding-top: 130px !important;
+}
+
+.home-duo-section {
+  display: none !important;
+}
+
+.nav {
+  align-items: center !important;
+  gap: 14px !important;
+}
+
+.menu {
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+.menu a,
+.teacher-menu-button,
+.nav-cta {
+  min-height: 34px !important;
+  padding: 7px 11px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  line-height: 1 !important;
+  font-size: 12px !important;
+  white-space: nowrap !important;
+}
+
+.teacher-menu-button {
+  background: var(--yellow) !important;
+  color: #1f2937 !important;
+  border-radius: 999px !important;
+  font-weight: 800 !important;
+}
+
+@media (max-width: 980px) {
+  .top-offer,
+  .contact-bar {
+    display: none !important;
+  }
+
+  .nav {
+    justify-content: center !important;
+    padding: 10px 18px !important;
+  }
+
+  .logo-image {
+    align-items: center !important;
+  }
+
+  .logo-image img {
+    height: 58px !important;
+    max-width: 230px !important;
+  }
+
+  .menu,
+  .nav-cta {
+    display: none !important;
+  }
+
+  .travel-hero {
+    min-height: 560px !important;
+    padding: 58px 18px 115px !important;
+  }
+
+  .travel-hero-inner {
+    min-height: 300px;
+  }
+
+  .hero-copy-panel h1,
+  .travel-hero h1 {
+    font-size: clamp(34px, 9vw, 48px);
+    letter-spacing: -0.8px;
+  }
+
+  .hero-text {
+    font-size: 18px;
+  }
+
+  .search-band {
+    margin-top: -82px !important;
+    padding-left: 18px !important;
+    padding-right: 18px !important;
+  }
+
+  .compact-spotlight-section,
+  .spotlight-section {
+    padding-top: 58px !important;
+  }
+}
+
+/* Rapprocher Espace enseignant et Demander un devis */
+.nav {
+  justify-content: flex-start !important;
+  gap: 30px !important;
+}
+
+.logo-image {
+  margin-right: auto !important;
+}
+
+.menu {
+  gap: 45px !important;
+}
+
+.teacher-menu-button {
+  margin-right: 0 !important;
+}
+
+.nav-cta {
+  margin-left: 5px !important;
+}
+
+/* Espace enseignant */
+
+.teacher-space-section {
+  display: block !important;
+  background: linear-gradient(135deg, #f7f5ef 0%, #ffffff 100%);
+  padding: 80px 6%;
+}
+
+.teacher-space-grid {
+  max-width: 1240px;
+  margin: auto;
+  display: grid;
+  grid-template-columns: 0.95fr 1.05fr;
+  gap: 44px;
+  align-items: center;
+}
+
+.teacher-space-content span {
+  display: block;
+  color: var(--red);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 14px;
+}
+
+.teacher-space-content h2 {
+  color: var(--navy);
+  font-size: clamp(38px, 5vw, 64px);
+  line-height: 1.02;
+  letter-spacing: -1.8px;
+  margin-bottom: 20px;
+}
+
+.teacher-space-content p {
+  color: var(--muted);
+  font-size: 19px;
+  line-height: 1.65;
+  max-width: 680px;
+  margin-bottom: 28px;
+}
+
+.teacher-dashboard {
+  background: white;
+  border: 1px solid rgba(18, 60, 63, 0.1);
+  border-radius: 28px;
+  padding: 28px;
+  box-shadow: 0 20px 48px rgba(18, 60, 63, 0.12);
+}
+
+.teacher-dashboard-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  align-items: center;
+  border-bottom: 1px solid #e3ddd0;
+  padding-bottom: 18px;
+  margin-bottom: 22px;
+}
+
+.teacher-dashboard-head h3 {
+  color: var(--navy);
+  font-size: 28px;
+}
+
+.teacher-dashboard-head span {
+  background: var(--yellow);
+  color: #1f2937;
+  border-radius: 999px;
+  padding: 8px 13px;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.teacher-dashboard-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin-bottom: 22px;
+}
+
+.teacher-dashboard-stats div,
+.teacher-dashboard-list div {
+  background: #f7f5ef;
+  border: 1px solid #e3ddd0;
+  border-radius: 16px;
+  padding: 18px;
+}
+
+.teacher-dashboard-stats small {
+  display: block;
+  color: var(--muted);
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.teacher-dashboard-stats strong {
+  color: var(--navy);
+  font-size: 26px;
+}
+
+.teacher-dashboard-list {
+  display: grid;
+  gap: 12px;
+}
+
+.teacher-dashboard-list div {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--navy);
+  font-weight: 700;
+}
+
+.teacher-dashboard-list span {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: var(--light-blue);
+  color: var(--blue);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+}
+
+@media (max-width: 980px) {
+  .teacher-space-section {
+    padding: 56px 18px;
+  }
+
+  .teacher-space-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .teacher-dashboard-stats {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Page espace enseignant */
+
+.teacher-login-page,
+.teacher-access-page,
+main:has(.teacher-login-card) {
+  min-height: calc(100vh - 90px);
+  background:
+    linear-gradient(135deg, rgba(247, 245, 239, 0.96), rgba(255, 255, 255, 0.98)),
+    url("/images/hero-europe.png") center / cover;
+  padding: 80px 6%;
+}
+
+.teacher-login-card,
+.teacher-access-card {
+  max-width: 1120px;
+  margin: 0 auto;
+  background: white;
+  border: 1px solid rgba(18, 60, 63, 0.1);
+  border-radius: 30px;
+  padding: 42px;
+  box-shadow: 0 24px 60px rgba(18, 60, 63, 0.12);
+}
+
+.teacher-login-card > span,
+.teacher-access-card > span {
+  display: inline-flex;
+  color: var(--red);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 13px;
+  font-weight: 800;
+  margin-bottom: 16px;
+}
+
+.teacher-login-card h1,
+.teacher-access-card h1 {
+  max-width: 860px;
+  color: var(--navy);
+  font-size: clamp(40px, 5vw, 68px);
+  line-height: 1.02;
+  letter-spacing: -1.8px;
+  margin-bottom: 20px;
+}
+
+.teacher-login-card p,
+.teacher-access-card p {
+  max-width: 760px;
+  color: var(--muted);
+  font-size: 18px;
+  line-height: 1.65;
+  margin-bottom: 28px;
+}
+
+.teacher-login-card form,
+.teacher-access-card form {
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr auto;
+  gap: 14px;
+  align-items: end;
+  background: #f7f5ef;
+  border: 1px solid #e3ddd0;
+  border-radius: 22px;
+  padding: 18px;
+}
+
+.teacher-login-card label,
+.teacher-access-card label {
+  display: grid;
+  gap: 8px;
+  color: var(--navy);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.teacher-login-card input,
+.teacher-access-card input {
+  width: 100%;
+  min-height: 52px;
+  border: 1px solid #d8d0c2;
+  border-radius: 14px;
+  background: white;
+  color: var(--navy);
+  padding: 0 14px;
+  outline: none;
+  font-size: 15px;
+}
+
+.teacher-login-card input:focus,
+.teacher-access-card input:focus {
+  border-color: var(--red);
+  box-shadow: 0 0 0 4px rgba(217, 107, 95, 0.12);
+}
+
+.teacher-login-card button,
+.teacher-access-card button {
+  min-height: 52px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--red);
+  color: white;
+  padding: 0 22px;
+  font-weight: 800;
+  cursor: pointer;
+  white-space: nowrap;
+  box-shadow: 0 14px 28px rgba(217, 107, 95, 0.24);
+}
+
+/* Si ta page n'a pas encore les bonnes classes, ce filet de sécurité la rend propre */
+main > h1:first-child,
+main > p:first-of-type {
+  max-width: 1120px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+main > form:first-of-type {
+  max-width: 1120px;
+  margin: 24px auto 0;
+}
+
+@media (max-width: 900px) {
+  .teacher-login-page,
+  .teacher-access-page,
+  main:has(.teacher-login-card) {
+    padding: 54px 18px;
+  }
+
+  .teacher-login-card,
+  .teacher-access-card {
+    padding: 26px;
+    border-radius: 24px;
+  }
+
+  .teacher-login-card form,
+  .teacher-access-card form {
+    grid-template-columns: 1fr;
+  }
+
+  .teacher-login-card button,
+  .teacher-access-card button {
+    width: 100%;
+  }
+}
+
+.ai-assistant-card {
+  max-width: 1120px;
+  margin: 40px auto 0;
+  background: white;
+  border: 1px solid rgba(18, 60, 63, 0.1);
+  border-radius: 28px;
+  padding: 32px;
+  box-shadow: 0 20px 48px rgba(18, 60, 63, 0.1);
+}
+
+.ai-assistant-card span {
+  color: var(--red);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.ai-assistant-card h2 {
+  color: var(--navy);
+  font-size: 34px;
+  margin: 8px 0 10px;
+}
+
+.ai-assistant-card p {
+  color: var(--muted);
+}
+
+.ai-assistant-card form {
+  display: grid;
+  gap: 14px;
+  margin-top: 22px;
+}
+
+.ai-assistant-card textarea {
+  min-height: 150px;
+  border: 1px solid #d8d0c2;
+  border-radius: 18px;
+  padding: 16px;
+  font: inherit;
+  resize: vertical;
+}
+
+.ai-assistant-card button {
+  width: fit-content;
+  border: 0;
+  border-radius: 999px;
+  background: var(--red);
+  color: white;
+  padding: 14px 22px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.ai-result {
+  margin-top: 26px;
+  display: grid;
+  gap: 16px;
+}
+
+.ai-result h3,
+.ai-result h4 {
+  color: var(--navy);
+}
+
+.ai-result article {
+  background: #f7f5ef;
+  border: 1px solid #e3ddd0;
+  border-radius: 16px;
+  padding: 16px;
+}
+
+.ai-error {
+  margin-top: 16px;
+  color: var(--red);
+  font-weight: 700;
+}
+
+/* Page devis - version propre */
+
+.quote-page {
+  background: #f7f5ef;
+  min-height: 100vh;
+}
+
+.quote-hero {
+  background: linear-gradient(135deg, #123c3f, #2f7f8f);
+  color: white;
+  padding: 72px 6% 92px;
+}
+
+.quote-hero span {
+  display: inline-flex;
+  color: #f6d77a;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 16px;
+}
+
+.quote-hero h1 {
+  color: white;
+  max-width: 900px;
+  font-size: clamp(42px, 5vw, 68px);
+  line-height: 1.02;
+  letter-spacing: -1.6px;
+  margin-bottom: 18px;
+}
+
+.quote-hero p {
+  max-width: 780px;
+  color: #eef7f5;
+  font-size: 18px;
+  line-height: 1.6;
+}
+
+.quote-section {
+  padding: 0 6% 70px;
+  margin-top: -46px;
+  position: relative;
+  z-index: 2;
+}
+
+.quote-layout {
+  max-width: 1240px;
+  margin: auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  gap: 26px;
+  align-items: start;
+}
+
+.quote-form,
+.quote-side {
+  background: white;
+  border: 1px solid #e3ddd0;
+  border-radius: 28px;
+  padding: 28px;
+  box-shadow: 0 18px 42px rgba(18, 60, 63, 0.1);
+}
+
+.quote-form {
+  display: grid;
+  gap: 20px;
+}
+
+.quote-selected-trip {
+  display: grid;
+  grid-template-columns: 150px 1fr;
+  gap: 16px;
+  align-items: center;
+  background: #f7f5ef;
+  border: 1px solid #e3ddd0;
+  border-radius: 22px;
+  padding: 14px;
+}
+
+.quote-selected-trip img {
+  width: 150px;
+  height: 110px;
+  object-fit: cover;
+  border-radius: 16px;
+}
+
+.quote-selected-trip span {
+  display: block;
+  color: #d96b5f;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 12px;
+  font-weight: 800;
+  margin-bottom: 6px;
+}
+
+.quote-selected-trip strong {
+  display: block;
+  color: #123c3f;
+  font-size: 24px;
+  line-height: 1.1;
+  margin-bottom: 6px;
+}
+
+.quote-selected-trip small {
+  color: #6f7f85;
+  font-weight: 700;
+}
+
+.quote-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.quote-form label {
+  display: grid;
+  gap: 8px;
+  color: #123c3f;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.quote-form input,
+.quote-form select,
+.quote-form textarea {
+  width: 100%;
+  min-height: 52px;
+  border: 1px solid #d8d0c2;
+  border-radius: 14px;
+  background: #fbfaf7;
+  color: #1f2a2e;
+  padding: 0 14px;
+  font: inherit;
+  font-size: 15px;
+  outline: none;
+}
+
+.quote-form textarea {
+  min-height: 150px;
+  padding: 14px;
+  resize: vertical;
+}
+
+.quote-form input:focus,
+.quote-form select:focus,
+.quote-form textarea:focus {
+  border-color: #d96b5f;
+  box-shadow: 0 0 0 4px rgba(217, 107, 95, 0.12);
+  background: white;
+}
+
+.quote-form button {
+  width: fit-content;
+  min-height: 52px;
+  border: 0;
+  border-radius: 999px;
+  background: #d96b5f;
+  color: white;
+  padding: 0 24px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 14px 28px rgba(217, 107, 95, 0.24);
+}
+
+.quote-side {
+  position: sticky;
+  top: 110px;
+}
+
+.quote-side h2 {
+  color: #123c3f;
+  font-size: 28px;
+  line-height: 1.1;
+  margin-bottom: 18px;
+}
+
+.quote-side ul {
+  display: grid;
+  gap: 12px;
+  padding-left: 20px;
+  color: #6f7f85;
+  line-height: 1.5;
+}
+
+.quote-status {
+  color: #123c3f;
+  font-weight: 800;
+}
+
+@media (max-width: 900px) {
+  .quote-hero {
+    padding: 54px 18px 76px;
+  }
+
+  .quote-section {
+    padding: 0 18px 54px;
+  }
+
+  .quote-layout,
+  .quote-form-grid,
+  .quote-selected-trip {
+    grid-template-columns: 1fr;
+  }
+
+  .quote-selected-trip img {
+    width: 100%;
+    height: 180px;
+  }
+
+  .quote-side {
+    position: static;
+  }
+
+  .quote-form button {
+    width: 100%;
+  }
+}
+
+/* Devis - typographie plus légère */
+
+.quote-hero h1 {
+  font-weight: 500 !important;
+  letter-spacing: -1px !important;
+}
+
+.quote-hero p {
+  font-weight: 400 !important;
+}
+
+.quote-form label {
+  font-weight: 600 !important;
+}
+
+.quote-selected-trip span {
+  font-weight: 700 !important;
+}
+
+.quote-selected-trip strong {
+  font-weight: 600 !important;
+}
+
+.quote-side h2 {
+  font-weight: 600 !important;
+}
+
+.quote-side li {
+  font-weight: 400 !important;
+}
+
+.quote-form button {
+  font-weight: 700 !important;
+}
+
+/* Espace enseignant - dashboard projet */
+
+.teacher-project-page {
+  min-height: 100vh;
+  background: #f7f5ef;
+  padding: 36px 6% 70px;
+}
+
+.teacher-project-hero {
+  max-width: 1240px;
+  margin: 0 auto 24px;
+  background:
+    linear-gradient(135deg, rgba(18, 60, 63, 0.95), rgba(47, 127, 143, 0.88)),
+    url("/images/hero-europe.png") center / cover;
+  color: white;
+  border-radius: 30px;
+  padding: 36px;
+  display: flex;
+  justify-content: space-between;
+  gap: 28px;
+  align-items: flex-end;
+  box-shadow: 0 22px 55px rgba(18, 60, 63, 0.16);
+}
+
+.teacher-project-hero span {
+  color: #f6d77a;
+  font-weight: 700;
+}
+
+.teacher-project-hero h1 {
+  color: white;
+  font-size: clamp(42px, 5vw, 68px);
+  line-height: 1;
+  font-weight: 600;
+  margin: 10px 0 14px;
+}
+
+.teacher-project-hero p {
+  color: #eef7f5;
+  font-size: 18px;
+}
+
+.teacher-code-card {
+  min-width: 220px;
+  background: rgba(255, 255, 255, 0.94);
+  color: #123c3f;
+  border-radius: 20px;
+  padding: 20px;
+}
+
+.teacher-code-card span {
+  display: block;
+  color: #6f7f85;
+  font-size: 13px;
+  margin-bottom: 6px;
+}
+
+.teacher-code-card strong {
+  font-size: 26px;
+}
+
+.teacher-project-grid {
+  max-width: 1240px;
+  margin: 0 auto 24px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 18px;
+}
+
+.teacher-stat-card,
+.teacher-project-card {
+  background: white;
+  border: 1px solid #e3ddd0;
+  border-radius: 24px;
+  padding: 24px;
+  box-shadow: 0 14px 34px rgba(18, 60, 63, 0.08);
+}
+
+.teacher-stat-card span {
+  display: block;
+  color: #6f7f85;
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.teacher-stat-card strong {
+  color: #123c3f;
+  font-size: 28px;
+}
+
+.teacher-project-card {
+  max-width: 1240px;
+  margin: 0 auto 24px;
+}
+
+.teacher-project-card h2 {
+  color: #123c3f;
+  font-size: 28px;
+  font-weight: 600;
+  margin-bottom: 20px;
+}
+
+.teacher-info-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+
+.teacher-info-grid div {
+  background: #f7f5ef;
+  border: 1px solid #e3ddd0;
+  border-radius: 16px;
+  padding: 16px;
+}
+
+.teacher-info-grid span {
+  display: block;
+  color: #6f7f85;
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.teacher-info-grid strong {
+  color: #123c3f;
+}
+
+.teacher-card-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  align-items: flex-start;
+  margin-bottom: 20px;
+}
+
+.teacher-card-head h2,
+.teacher-card-head h3 {
+  color: #123c3f;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.teacher-card-head p {
+  color: #6f7f85;
+}
+
+.teacher-inline-form {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr) auto;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.teacher-inline-form input,
+.teacher-detail-list select {
+  min-height: 48px;
+  border: 1px solid #d8d0c2;
+  border-radius: 14px;
+  background: #fbfaf7;
+  padding: 0 13px;
+  font: inherit;
+  outline: none;
+}
+
+.teacher-inline-form button,
+.teacher-card-head button {
+  border: 0;
+  border-radius: 999px;
+  background: #d96b5f;
+  color: white;
+  padding: 0 18px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.teacher-split-layout {
+  display: grid;
+  grid-template-columns: 380px 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+.teacher-student-list {
+  display: grid;
+  gap: 10px;
+}
+
+.teacher-student-row {
+  width: 100%;
+  border: 1px solid #e3ddd0;
+  background: #fbfaf7;
+  border-radius: 16px;
+  padding: 14px;
+  text-align: left;
+  display: grid;
+  gap: 4px;
+  cursor: pointer;
+}
+
+.teacher-student-row.active {
+  border-color: #d96b5f;
+  background: #fff8f5;
+}
+
+.teacher-student-row strong {
+  color: #123c3f;
+}
+
+.teacher-student-row span,
+.teacher-student-row small {
+  color: #6f7f85;
+}
+
+.teacher-student-detail {
+  background: #f7f5ef;
+  border: 1px solid #e3ddd0;
+  border-radius: 20px;
+  padding: 22px;
+}
+
+.teacher-student-detail h4 {
+  color: #123c3f;
+  margin: 22px 0 12px;
+}
+
+.teacher-detail-list {
+  display: grid;
+  gap: 10px;
+}
+
+.teacher-detail-list div {
+  display: grid;
+  grid-template-columns: 1fr 130px 150px;
+  gap: 12px;
+  align-items: center;
+  background: white;
+  border: 1px solid #e3ddd0;
+  border-radius: 14px;
+  padding: 12px;
+}
+
+.teacher-detail-list strong {
+  color: #123c3f;
+}
+
+.teacher-detail-list span {
+  color:

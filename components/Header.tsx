@@ -20,16 +20,19 @@ export default function Header() {
             <img src="/images/logo-scolamove.png" alt="Scolamove" />
           </a>
 
-          <nav className="menu">
+          <nav className="menu" aria-label="Navigation principale">
             <a href="/#sejours">Nos séjours</a>
             <a href="/#destinations">Destinations</a>
             <a href="/#agence">L’agence</a>
             <a href="/#process">Comment ça marche</a>
+            <a href="/espace-enseignant" className="teacher-menu-button">
+              Espace enseignant
+            </a>
           </nav>
 
-          <a href="/#devis" className="btn btn-primary nav-cta">
-            Demander un devis
-          </a>
+          <a href="/devis" className="btn btn-primary nav-cta">
+  Demander un devis
+</a>
         </div>
       </header>
     </>
