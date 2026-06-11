@@ -1,18 +1,19 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Header from "@/components/Header";
 import { supabase } from "@/lib/supabase";
 import type { SupabaseSejour } from "@/lib/sejours-supabase";
 
-export default function DevisPage() {
+function DevisContent() {
   const searchParams = useSearchParams();
   const sejourSlug = searchParams.get("sejour");
 
   const [status, setStatus] = useState("");
   const [loading, setLoading] = useState(false);
-  const [selectedSejour, setSelectedSejour] = useState<SupabaseSejour | null>(null);
+  const [selectedSejour, setSelectedSejour] =
+    useState<SupabaseSejour | null>(null);
 
   useEffect(() => {
     async function loadSejour() {
@@ -126,7 +127,12 @@ export default function DevisPage() {
 
                 <label>
                   Email *
-                  <input name="email" type="email" required placeholder="vous@etablissement.fr" />
+                  <input
+                    name="email"
+                    type="email"
+                    required
+                    placeholder="vous@etablissement.fr"
+                  />
                 </label>
 
                 <label>
@@ -199,5 +205,13 @@ export default function DevisPage() {
         </section>
       </main>
     </>
+  );
+}
+
+export default function DevisPage() {
+  return (
+    <Suspense fallback={<p>Chargement du devis...</p>}>
+      <DevisContent />
+    </Suspense>
   );
 }
