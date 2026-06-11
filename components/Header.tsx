@@ -9,7 +9,7 @@ export default function Header() {
         <div className="contact-inner">
           <span>Agence spécialisée dans les voyages scolaires linguistiques</span>
           <span>
-            <strong>Conseiller Scolamove :</strong>· contact@scolamove.fr
+            <strong>Conseiller Scolamove :</strong> contact@scolamove.fr
           </span>
         </div>
       </div>
