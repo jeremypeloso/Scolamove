@@ -171,7 +171,6 @@ export default function Home() {
           </div>
           <div>
             <h3>Contact</h3>
-            <a href="tel:+33100000000">01 00 00 00 00</a>
             <a href="mailto:contact@scolamove.fr">contact@scolamove.fr</a>
             <a href="#devis">Demander un devis</a>
           </div>

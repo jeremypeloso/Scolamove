@@ -2,6 +2,25 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Getting Started
 
+## Configuration des demandes de devis
+
+Les demandes de devis sont enregistrees dans Supabase puis envoyees par email
+via Resend. Ajoutez ces variables dans `.env.local` en local, puis dans les
+variables d'environnement de votre hebergeur :
+
+```bash
+NEXT_PUBLIC_SUPABASE_URL=...
+NEXT_PUBLIC_SUPABASE_ANON_KEY=...
+
+RESEND_API_KEY=...
+QUOTE_TO_EMAIL=contact@scolamove.fr
+QUOTE_FROM_EMAIL=Scolamove <devis@votre-domaine.fr>
+```
+
+`QUOTE_TO_EMAIL` est l'adresse qui recoit les demandes. `QUOTE_FROM_EMAIL`
+doit utiliser un domaine valide dans Resend. Pour un premier test, vous pouvez
+laisser cette variable vide : l'adresse de test Resend sera utilisee.
+
 First, run the development server:
 
 ```bash
