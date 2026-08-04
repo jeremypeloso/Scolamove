@@ -23,7 +23,7 @@ export default function Header() {
     <nav className="menu" aria-label="Navigation principale">
       <a href="/#sejours">Nos séjours</a>
       <a href="/#destinations">Destinations</a>
-      <a href="/catalogue">Catalogue 2026</a>
+      <a href="/catalogue">Catalogue 2026-2027</a>
       <a href="/#agence">L’agence</a>
       <a href="/#process">Comment ça marche</a>
       <a href="/espace-enseignant" className="teacher-menu-button">

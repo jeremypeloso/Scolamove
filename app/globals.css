@@ -5441,3 +5441,27 @@ main > form:first-of-type {
     height: 44px;
   }
 }
+
+/* ===== Header centré (desktop) ===== */
+
+@media (min-width: 981px) {
+  .nav {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    justify-content: initial;
+  }
+
+  .nav .logo {
+    justify-self: start;
+  }
+
+  .nav .menu {
+    justify-self: center;
+    justify-content: center;
+  }
+
+  .nav .nav-cta {
+    justify-self: end;
+  }
+}

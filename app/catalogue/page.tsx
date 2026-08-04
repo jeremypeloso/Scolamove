@@ -17,7 +17,7 @@ export default function CataloguePage() {
       <main className="catalogue-main">
         <section className="catalogue-hero">
           <div className="container">
-            <div className="label">Édition 2026</div>
+            <div className="label">Édition 2026-2027</div>
             <h1>Feuilletez notre catalogue</h1>
             <p>
               Retrouvez l&apos;ensemble de nos séjours scolaires en France, en
