@@ -415,7 +415,11 @@ export default function CatalogueFlipbook() {
           >
             {isFullscreen ? "Quitter le plein écran" : "Plein écran"}
           </button>
-          <a className="flipbook-btn flipbook-btn-primary" href={PDF_URL} download>
+          <a
+            className="flipbook-btn flipbook-btn-primary"
+            href={PDF_URL}
+            download="catalogue-2026-2027.pdf"
+          >
             Télécharger le PDF
           </a>
         </div>
