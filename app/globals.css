@@ -5452,8 +5452,8 @@ main > form:first-of-type {
     flex-wrap: wrap !important;
     align-items: center !important;
     justify-content: center !important;
-    gap: 6px 28px !important;
-    padding: 12px 24px 14px !important;
+    gap: 16px 28px !important;
+    padding: 14px 24px 16px !important;
   }
 
   /* Le logo occupe toute la première ligne, centré */
