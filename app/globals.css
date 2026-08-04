@@ -5442,15 +5442,37 @@ main > form:first-of-type {
   }
 }
 
-/* ===== Header centré (desktop) : logo + menu + bouton groupés au centre ===== */
+/* ===== Header centré (desktop) : logo au-dessus, menu centré en dessous ===== */
 
 @media (min-width: 981px) {
-  .nav {
-    width: 100%;
-    max-width: none;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 28px;
+  header .nav {
+    width: 100% !important;
+    max-width: none !important;
+    display: flex !important;
+    flex-wrap: wrap !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 6px 28px !important;
+    padding: 12px 24px 14px !important;
+  }
+
+  /* Le logo occupe toute la première ligne, centré */
+  header .nav .logo {
+    flex: 0 0 100% !important;
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: center !important;
+    margin: 0 !important;
+  }
+
+  /* Menu + boutons sur la seconde ligne, centrés ensemble */
+  header .nav .menu {
+    justify-content: center !important;
+    margin: 0 !important;
+  }
+
+  header .nav .nav-cta {
+    margin: 0 !important;
   }
 }
