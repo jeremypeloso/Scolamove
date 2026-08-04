@@ -293,3 +293,168 @@
 .flipbook-stage {
   overflow: hidden;
 }
+
+/* ===== Visionneuse zoom ===== */
+
+.zoom-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: rgba(12, 30, 32, 0.92);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.zoom-canvas {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+  touch-action: none;
+}
+
+.zoom-canvas:active {
+  cursor: grabbing;
+}
+
+.zoom-canvas img {
+  max-height: 92vh;
+  max-width: 92vw;
+  transition: transform 0.08s ease-out;
+  user-select: none;
+  -webkit-user-drag: none;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.5);
+}
+
+.zoom-close {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  z-index: 102;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.14);
+  color: white;
+  font-size: 18px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.zoom-close:hover {
+  background: var(--red);
+}
+
+.zoom-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 102;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.14);
+  color: white;
+  font-size: 30px;
+  line-height: 1;
+  cursor: pointer;
+  padding-bottom: 4px;
+  transition: background 0.2s ease;
+}
+
+.zoom-nav:hover:not(:disabled) {
+  background: var(--blue);
+}
+
+.zoom-nav:disabled {
+  opacity: 0.25;
+  cursor: default;
+}
+
+.zoom-nav-left {
+  left: 16px;
+}
+
+.zoom-nav-right {
+  right: 16px;
+}
+
+.zoom-toolbar {
+  position: absolute;
+  bottom: 22px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 102;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(8px);
+  border-radius: 999px;
+  padding: 8px 18px;
+  color: white;
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.zoom-toolbar button {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.16);
+  color: white;
+  font-size: 18px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.zoom-toolbar button:hover {
+  background: var(--blue);
+}
+
+.zoom-toolbar .zoom-reset {
+  width: auto;
+  border-radius: 999px;
+  padding: 0 14px;
+  font-size: 13px;
+}
+
+.zoom-page-indicator {
+  font-size: 13px;
+  opacity: 0.85;
+  white-space: nowrap;
+}
+
+@media (max-width: 720px) {
+  .zoom-nav {
+    width: 40px;
+    height: 40px;
+    font-size: 24px;
+  }
+
+  .zoom-nav-left {
+    left: 8px;
+  }
+
+  .zoom-nav-right {
+    right: 8px;
+  }
+
+  .zoom-toolbar {
+    gap: 8px;
+    padding: 7px 12px;
+    max-width: calc(100vw - 24px);
+  }
+
+  .zoom-page-indicator {
+    display: none;
+  }
+}
