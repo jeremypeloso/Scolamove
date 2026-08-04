@@ -54,8 +54,14 @@ export default function CatalogueFlipbook() {
   // Navigation clavier
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "ArrowRight") flipNext();
-      if (e.key === "ArrowLeft") flipPrev();
+      if (e.key === "ArrowRight") {
+        e.preventDefault();
+        flipNext();
+      }
+      if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        flipPrev();
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -114,7 +120,7 @@ export default function CatalogueFlipbook() {
             maxHeight={877}
             showCover={true}
             usePortrait={true}
-            mobileScrollSupport={true}
+            mobileScrollSupport={false}
             drawShadow={true}
             maxShadowOpacity={0.45}
             flippingTime={700}

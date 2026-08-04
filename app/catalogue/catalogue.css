@@ -282,3 +282,14 @@
     padding: 0 12px 50px;
   }
 }
+
+/* ===== Anti-scroll pendant le feuilletage ===== */
+
+.flipbook-book {
+  touch-action: none;
+  overscroll-behavior: contain;
+}
+
+.flipbook-stage {
+  overflow: hidden;
+}
