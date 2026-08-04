@@ -157,13 +157,6 @@ export default function Home() {
             <p>Agence spécialisée dans les séjours linguistiques scolaires clés en main.</p>
           </div>
           <div>
-            <h3>Destinations</h3>
-            <a href="#sejours">Londres</a>
-            <a href="#sejours">Dublin</a>
-            <a href="#sejours">Malte</a>
-            <a href="#sejours">Barcelone</a>
-          </div>
-          <div>
             <h3>Enseignants</h3>
             <a href="/espace-enseignant">Espace enseignant</a>
             <a href="#process">Comment ça marche</a>

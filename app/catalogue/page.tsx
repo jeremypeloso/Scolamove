@@ -4,9 +4,9 @@ import CatalogueClient from "./CatalogueClient";
 import "./catalogue.css";
 
 export const metadata: Metadata = {
-  title: "Catalogue 2026 — Scolamove",
+  title: "Catalogue 2026-2027 — Scolamove",
   description:
-    "Feuilletez le catalogue Scolamove 2026 : tous nos voyages scolaires éducatifs et linguistiques en France et en Europe.",
+    "Feuilletez le catalogue Scolamove 2026-2027 : tous nos voyages scolaires éducatifs et linguistiques en France et en Europe.",
 };
 
 export default function CataloguePage() {
