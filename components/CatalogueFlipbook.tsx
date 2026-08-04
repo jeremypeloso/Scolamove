@@ -8,7 +8,7 @@ import {
 } from "react";
 import HTMLFlipBook from "react-pageflip";
 
-const PDF_URL = "/catalogue/voyages-scolaires-2026.pdf";
+const PDF_URL = "/catalogue/voyages-scolaires-2026-2027.pdf";
 const MANIFEST_URL = "/catalogue/pages/manifest.json";
 const FALLBACK_PAGES = 71;
 
