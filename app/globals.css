@@ -5442,26 +5442,13 @@ main > form:first-of-type {
   }
 }
 
-/* ===== Header centré (desktop) ===== */
+/* ===== Header centré (desktop) : logo + menu + bouton groupés au centre ===== */
 
 @media (min-width: 981px) {
   .nav {
-    display: grid;
-    grid-template-columns: 1fr auto 1fr;
+    display: flex;
     align-items: center;
-    justify-content: initial;
-  }
-
-  .nav .logo {
-    justify-self: start;
-  }
-
-  .nav .menu {
-    justify-self: center;
     justify-content: center;
-  }
-
-  .nav .nav-cta {
-    justify-self: end;
+    gap: 34px;
   }
 }
