@@ -136,7 +136,11 @@ export async function POST(request: Request) {
       );
     }
 
-    await sendQuoteEmail(quote);
+    try {
+      await sendQuoteEmail(quote);
+    } catch (emailError) {
+      console.error("Erreur envoi email devis :", emailError);
+    }
 
     return NextResponse.json({
       message:
