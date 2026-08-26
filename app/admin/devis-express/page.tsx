@@ -1087,7 +1087,11 @@ export default function DevisExpressPage() {
       : "";
     const dossierLine = dossierSuiviPar.trim() ? `\nDossier suivi par : ${dossierSuiviPar.trim()}` : "";
 
-    const texte = `${civilite}
+    const objet = `Objet : Devis voyage scolaire ${zoneLabel} — ${etablissement.trim() || "votre établissement"} (réf. ${reference})`;
+
+    const texte = `${objet}
+
+${civilite}
 
 Suite à votre demande, voici notre proposition pour votre projet de voyage scolaire (référence ${reference}) :
 ${etabLine}${dossierLine}
