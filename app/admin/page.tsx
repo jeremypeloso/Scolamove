@@ -640,6 +640,9 @@ export default function AdminPage() {
           <a href="/admin/devis-express" className="admin-menu-link">
             Devis Express
           </a>
+          <a href="/admin/import-fiche" className="admin-menu-link">
+            Importer une fiche
+          </a>
         </nav>
 
         <button className="admin-logout" onClick={handleLogout}>
