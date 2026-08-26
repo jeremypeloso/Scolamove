@@ -11,6 +11,7 @@ import {
   StyleSheet,
   pdf,
 } from "@react-pdf/renderer";
+import { supabase } from "@/lib/supabase";
 
 type ZoneKey =
   | "france"
@@ -63,6 +64,47 @@ declare global {
     };
   }
 }
+
+type SavedDevisData = {
+  zone: ZoneKey;
+  jours: number;
+  nuits: number;
+  eleves: number;
+  accomp: number;
+  confort: "0.85" | "1" | "1.25";
+  visites: number;
+  marge: number;
+  sousTraite: boolean;
+  margeTransport: number;
+  ratios: ZoneRatios;
+  assuranceCheck: boolean;
+  assurancePct: number;
+  assuranceMin: number;
+  taxeSejourCheck: boolean;
+  taxeSejourMontant: number;
+  cautionCheck: boolean;
+  cautionMontant: number;
+  chambreIndivCheck: boolean;
+  chambreIndivMontant: number;
+  etablissement: string;
+  ville: string;
+  reference: string;
+  dateVoyage: string;
+  programme: string;
+  prixParVisite: number;
+};
+
+type SavedDevisRow = {
+  id: string;
+  reference: string;
+  etablissement: string | null;
+  ville: string | null;
+  zone: string | null;
+  prix_ferme: number | null;
+  pax: number | null;
+  created_at: string;
+  data: SavedDevisData;
+};
 
 export default function DevisExpressPage() {
   const [isLogged, setIsLogged] = useState(false);
@@ -119,6 +161,32 @@ export default function DevisExpressPage() {
   const [estimateMsg, setEstimateMsg] = useState<string | null>(null);
   const [ocrStatus, setOcrStatus] = useState("");
   const [copyState, setCopyState] = useState("");
+
+  // --- Sauvegarde / historique des devis ---
+  const [savedDevis, setSavedDevis] = useState<SavedDevisRow[]>([]);
+  const [loadingSaved, setLoadingSaved] = useState(false);
+  const [loadedId, setLoadedId] = useState<string | null>(null);
+  const [saveStatus, setSaveStatus] = useState("");
+
+  const fetchSavedDevis = async () => {
+    setLoadingSaved(true);
+    const { data, error } = await supabase
+      .from("devis_express")
+      .select("id, reference, etablissement, ville, zone, prix_ferme, pax, created_at, data")
+      .order("created_at", { ascending: false })
+      .limit(50);
+    if (!error && data) {
+      setSavedDevis(data as SavedDevisRow[]);
+    }
+    setLoadingSaved(false);
+  };
+
+  useEffect(() => {
+    if (isLogged) {
+      fetchSavedDevis();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLogged]);
 
   const result = useMemo(() => {
     const pax = eleves + accomp;
@@ -578,6 +646,123 @@ export default function DevisExpressPage() {
     );
   }
 
+  function buildSavedData(): SavedDevisData {
+    return {
+      zone,
+      jours,
+      nuits,
+      eleves,
+      accomp,
+      confort,
+      visites,
+      marge,
+      sousTraite,
+      margeTransport,
+      ratios,
+      assuranceCheck,
+      assurancePct,
+      assuranceMin,
+      taxeSejourCheck,
+      taxeSejourMontant,
+      cautionCheck,
+      cautionMontant,
+      chambreIndivCheck,
+      chambreIndivMontant,
+      etablissement,
+      ville,
+      reference,
+      dateVoyage,
+      programme,
+      prixParVisite,
+    };
+  }
+
+  async function handleSaveDevis() {
+    setSaveStatus("Enregistrement...");
+    const payload = {
+      reference: reference || genRef(),
+      etablissement: etablissement || null,
+      ville: ville || null,
+      zone,
+      prix_ferme: result.prixFerme,
+      pax: result.pax,
+      data: buildSavedData(),
+      updated_at: new Date().toISOString(),
+    };
+
+    if (loadedId) {
+      const { error } = await supabase.from("devis_express").update(payload).eq("id", loadedId);
+      if (error) {
+        setSaveStatus("Erreur lors de l'enregistrement.");
+        return;
+      }
+      setSaveStatus("Devis mis à jour ✓");
+    } else {
+      const { data, error } = await supabase.from("devis_express").insert(payload).select("id").single();
+      if (error) {
+        setSaveStatus("Erreur lors de l'enregistrement.");
+        return;
+      }
+      setLoadedId(data.id);
+      setSaveStatus("Devis enregistré ✓");
+    }
+    await fetchSavedDevis();
+    setTimeout(() => setSaveStatus(""), 2500);
+  }
+
+  function handleLoadDevis(row: SavedDevisRow) {
+    const d = row.data;
+    setZone(d.zone);
+    setJours(d.jours);
+    setNuits(d.nuits);
+    setEleves(d.eleves);
+    setAccomp(d.accomp);
+    setConfort(d.confort);
+    setVisites(d.visites);
+    setMarge(d.marge);
+    setSousTraite(d.sousTraite);
+    setMargeTransport(d.margeTransport);
+    setRatios(d.ratios);
+    setAssuranceCheck(d.assuranceCheck);
+    setAssurancePct(d.assurancePct);
+    setAssuranceMin(d.assuranceMin);
+    setTaxeSejourCheck(d.taxeSejourCheck);
+    setTaxeSejourMontant(d.taxeSejourMontant);
+    setCautionCheck(d.cautionCheck);
+    setCautionMontant(d.cautionMontant);
+    setChambreIndivCheck(d.chambreIndivCheck);
+    setChambreIndivMontant(d.chambreIndivMontant);
+    setEtablissement(d.etablissement);
+    setVille(d.ville);
+    setReference(d.reference);
+    setDateVoyage(d.dateVoyage);
+    setProgramme(d.programme);
+    setPrixParVisite(d.prixParVisite);
+    setLoadedId(row.id);
+    setSaveStatus(`Devis "${row.reference}" chargé ✓`);
+    setTimeout(() => setSaveStatus(""), 2500);
+  }
+
+  async function handleDeleteDevis(id: string) {
+    if (!confirm("Supprimer définitivement ce devis ?")) return;
+    const { error } = await supabase.from("devis_express").delete().eq("id", id);
+    if (!error) {
+      if (loadedId === id) setLoadedId(null);
+      await fetchSavedDevis();
+    }
+  }
+
+  function handleNewDevis() {
+    setLoadedId(null);
+    setReference(genRef());
+    setEtablissement("");
+    setVille("");
+    setDateVoyage("");
+    setProgramme("");
+    setSaveStatus("Nouveau devis — champs réinitialisés.");
+    setTimeout(() => setSaveStatus(""), 2500);
+  }
+
   async function handleDownload() {
     const blob = await pdf(<DevisPdfDocument />).toBlob();
     const url = URL.createObjectURL(blob);
@@ -976,6 +1161,79 @@ Jérémy — Scolamove`;
           </div>
         </div>
 
+        {/* Devis enregistrés */}
+        <div className="admin-panel de-panel identite" style={{ marginBottom: 22 }}>
+          <div className="de-panel-head">
+            <div className="de-panel-icon">💾</div>
+            <div>
+              <span className="de-eyebrow">{loadedId ? "Devis chargé" : "Nouveau devis"}</span>
+              <h2>Mes devis enregistrés</h2>
+            </div>
+          </div>
+
+          {loadedId && (
+            <div className="de-check-row" style={{ marginBottom: 14, justifyContent: "space-between" }}>
+              <span>Modifications en cours sur un devis existant ({reference})</span>
+              <button type="button" onClick={handleNewDevis} className="de-btn de-btn-outline">
+                Nouveau devis vierge
+              </button>
+            </div>
+          )}
+
+          {loadingSaved ? (
+            <p style={{ fontSize: 12.5, color: "var(--muted)" }}>Chargement...</p>
+          ) : savedDevis.length === 0 ? (
+            <p style={{ fontSize: 12.5, color: "var(--muted)" }}>
+              Aucun devis enregistré pour l&apos;instant — clique sur &quot;Enregistrer le devis&quot; en bas de page une fois ton calcul prêt.
+            </p>
+          ) : (
+            <div style={{ display: "grid", gap: 8, maxHeight: 260, overflowY: "auto" }}>
+              {savedDevis.map((row) => (
+                <div
+                  key={row.id}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: 10,
+                    padding: "10px 12px",
+                    borderRadius: 10,
+                    border: row.id === loadedId ? "1.5px solid #4f9d7a" : "1.5px solid #e5eef8",
+                    background: row.id === loadedId ? "#f0f9ec" : "#fbfdff",
+                    fontSize: 12.5,
+                  }}
+                >
+                  <div>
+                    <div style={{ fontWeight: 700, color: "var(--navy)" }}>
+                      {row.etablissement || "Établissement non renseigné"} — {row.reference}
+                    </div>
+                    <div style={{ color: "var(--muted)", fontSize: 11.5 }}>
+                      {row.zone ? ZONES[row.zone as ZoneKey]?.label ?? row.zone : ""}
+                      {row.pax ? ` · ${row.pax} pers` : ""}
+                      {row.prix_ferme ? ` · ${Number(row.prix_ferme).toFixed(0)} €/pers` : ""}
+                      {" · "}
+                      {new Date(row.created_at).toLocaleDateString("fr-FR")}
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+                    <button type="button" onClick={() => handleLoadDevis(row)} className="de-btn de-btn-outline">
+                      Charger
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteDevis(row.id)}
+                      className="de-btn de-btn-outline"
+                      style={{ color: "#c0392b", borderColor: "#f0c4bc" }}
+                    >
+                      Supprimer
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
         {/* Identification */}
         <div className="admin-panel de-panel identite">
           <div className="de-panel-head">
@@ -1231,13 +1489,16 @@ Jérémy — Scolamove`;
         </p>
 
         <div className="de-actions">
+          <button type="button" onClick={handleSaveDevis} className="de-btn de-btn-outline" style={{ background: "#123c3f", color: "#fff", border: "none" }}>
+            {loadedId ? "Mettre à jour le devis" : "Enregistrer le devis"}
+          </button>
           <button type="button" onClick={handleCopyEmail} className="de-btn de-btn-primary">
             Copier le texte pour l&apos;email client
           </button>
           <button type="button" onClick={handleDownload} className="de-btn de-btn-accent">
             Télécharger le devis (PDF)
           </button>
-          {copyState && <span className="de-copystate">{copyState}</span>}
+          {(copyState || saveStatus) && <span className="de-copystate">{copyState || saveStatus}</span>}
         </div>
       </section>
     </main>
