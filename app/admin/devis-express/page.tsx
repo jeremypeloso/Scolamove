@@ -216,6 +216,16 @@ export default function DevisExpressPage() {
   const [selectedSejourId, setSelectedSejourId] = useState("");
   const [sejourImportMsg, setSejourImportMsg] = useState("");
 
+  const sejoursByCountry = useMemo(() => {
+    const groups: Record<string, CatalogueSejour[]> = {};
+    catalogueSejours.forEach((s) => {
+      const country = s.country || "Autre";
+      if (!groups[country]) groups[country] = [];
+      groups[country].push(s);
+    });
+    return Object.entries(groups).sort((a, b) => a[0].localeCompare(b[0], "fr"));
+  }, [catalogueSejours]);
+
   useEffect(() => {
     if (!isLogged) return;
     (async () => {
@@ -1556,10 +1566,14 @@ Jérémy — Scolamove`;
               <option value="">
                 {loadingCatalogue ? "Chargement des séjours..." : "— Choisir un séjour —"}
               </option>
-              {catalogueSejours.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.title} — {s.destination} ({s.duration}){s.hidden ? " [masqué]" : ""}
-                </option>
+              {sejoursByCountry.map(([country, sejoursOfCountry]) => (
+                <optgroup key={country} label={country}>
+                  {sejoursOfCountry.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.title} — {s.destination} ({s.duration}){s.hidden ? " [masqué]" : ""}
+                    </option>
+                  ))}
+                </optgroup>
               ))}
             </select>
           </label>
