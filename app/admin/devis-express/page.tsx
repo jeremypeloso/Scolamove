@@ -983,6 +983,7 @@ export default function DevisExpressPage() {
     setDateVoyage(d.dateVoyage);
     setProgramme(d.programme);
     setPrixParVisite(d.prixParVisite);
+    setSelectedSejourId(""); // le sélecteur "séjour du site" ne doit pas garder l'ancien choix
     setLoadedId(row.id);
     setSaveStatus(`Devis "${row.reference}" chargé ✓`);
     setTimeout(() => setSaveStatus(""), 2500);
