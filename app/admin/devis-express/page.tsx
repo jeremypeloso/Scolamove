@@ -247,10 +247,38 @@ export default function DevisExpressPage() {
         },
       });
       const text = data.text;
+
+      // 1er essai : programme au format texte simple avec "JOUR X" écrit en toutes lettres
+      // (fonctionne pour les devis d'agences concurrentes en PDF/Word classiques).
       const jourRegex = /JOUR\s*\d+[^\n]*(?:\n(?!JOUR\s*\d+|BUDGET|AUTRES)[^\n]*)*/gi;
-      const joursTrouves = text.match(jourRegex) || [];
+      let joursTrouves: string[] = text.match(jourRegex) || [];
+      let usedFallback = false;
+
+      // Repli : sur les fiches Scolamove/brochures illustrées, le numéro "JOUR X" est un
+      // badge graphique coloré que l'OCR ne lit quasiment jamais correctement (il ressort
+      // souvent comme "CLÉS Tolède" ou "EU Séville" au lieu de "JOUR 2"/"JOUR 4"...).
+      // On détecte alors les paragraphes de contenu directement, via les verbes d'action
+      // qui démarrent presque toujours un jour de programme, et on les numérote nous-mêmes.
+      if (joursTrouves.length < 2) {
+        usedFallback = true;
+        const startKeywords =
+          /^(départ|arrivée|visite|excursion|retour|petit-déjeuner|découverte|journée|matinée|après-midi|route)/i;
+        const excludeNoise = /budget|^www\.|base\s*\d+\s*\+\s*\d+|environ.*€/i;
+        const blocks = text
+          .split(/\n\s*\n/)
+          .map((b) => b.trim())
+          .filter(Boolean);
+        joursTrouves = blocks.filter(
+          (b) => b.length >= 25 && !excludeNoise.test(b) && startKeywords.test(b)
+        );
+      }
+
       if (joursTrouves.length) {
-        setProgramme(joursTrouves.map((j) => j.trim()).join("\n\n"));
+        setProgramme(
+          joursTrouves
+            .map((j, i) => (usedFallback ? `JOUR ${i + 1}\n${j.trim()}` : j.trim()))
+            .join("\n\n")
+        );
       }
       const mJours = text.match(/(\d+)\s*JOURS?/i);
       const mNuits = text.match(/(\d+)\s*NUITS?/i);
@@ -276,7 +304,9 @@ export default function DevisExpressPage() {
         : "";
 
       setOcrStatus(
-        `${joursTrouves.length} jour(s) de programme détecté(s) et inséré(s).${budgetMsg}${prixMsg} Vérifie le texte — l'OCR peut contenir des erreurs.`
+        `${joursTrouves.length} jour(s) de programme détecté(s) et inséré(s)${
+          usedFallback ? " (numérotation automatique, les intitulés de jour n'étaient pas lisibles sur les badges colorés)" : ""
+        }.${budgetMsg}${prixMsg} Vérifie le texte — l'OCR peut contenir des erreurs.`
       );
     } catch {
       setOcrStatus("Échec de la lecture de l'image. Réessaie avec une photo plus nette, ou colle le texte manuellement.");
