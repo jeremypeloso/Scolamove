@@ -160,6 +160,7 @@ export default function DevisExpressPage() {
   const [prixParVisite, setPrixParVisite] = useState(6);
   const [estimateMsg, setEstimateMsg] = useState<string | null>(null);
   const [ocrStatus, setOcrStatus] = useState("");
+  const [ocrRawText, setOcrRawText] = useState("");
   const [copyState, setCopyState] = useState("");
 
   // --- Sauvegarde / historique des devis ---
@@ -319,6 +320,7 @@ export default function DevisExpressPage() {
         },
       });
       const text = data.text;
+      setOcrRawText(text);
 
       // 1er essai : programme au format texte simple avec "JOUR X" écrit en toutes lettres
       // (fonctionne pour les devis d'agences concurrentes en PDF/Word classiques).
@@ -1461,6 +1463,19 @@ Jérémy — Scolamove`;
               />
             </label>
             {ocrStatus && <p className="de-ocr-status">{ocrStatus}</p>}
+            {ocrRawText && (
+              <details style={{ marginTop: 8 }}>
+                <summary style={{ cursor: "pointer", fontSize: 11, color: "var(--muted)" }}>
+                  Voir le texte brut détecté par l&apos;OCR (debug)
+                </summary>
+                <textarea
+                  readOnly
+                  value={ocrRawText}
+                  rows={12}
+                  style={{ width: "100%", marginTop: 8, fontSize: 11, fontFamily: "monospace" }}
+                />
+              </details>
+            )}
           </div>
         </div>
 
