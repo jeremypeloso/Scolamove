@@ -155,12 +155,13 @@ export default function Home() {
           <div>
             <h3>Scolamove</h3>
             <p>Agence spécialisée dans les séjours linguistiques scolaires clés en main.</p>
+            <a href="/qui-sommes-nous">Qui sommes-nous</a>
           </div>
           <div>
             <h3>Enseignants</h3>
             <a href="/espace-enseignant">Espace enseignant</a>
             <a href="#process">Comment ça marche</a>
-            <a href="#agence">Accompagnement</a>
+            <a href="/qui-sommes-nous">Accompagnement</a>
           </div>
           <div>
             <h3>Contact</h3>
