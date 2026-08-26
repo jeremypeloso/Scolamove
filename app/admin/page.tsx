@@ -643,6 +643,9 @@ export default function AdminPage() {
           <a href="/admin/import-fiche" className="admin-menu-link">
             Importer une fiche
           </a>
+          <a href="/admin/enseignants" className="admin-menu-link">
+            Fiches enseignants
+          </a>
         </nav>
 
         <button className="admin-logout" onClick={handleLogout}>

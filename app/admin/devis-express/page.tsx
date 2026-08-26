@@ -1238,6 +1238,7 @@ Jérémy — Scolamove`;
           }
           .de-panel input[type="text"],
           .de-panel input[type="number"],
+          .de-panel input[type="email"],
           .de-panel select,
           .de-panel textarea,
           .de-panel input:not([type]) {
