@@ -5638,3 +5638,28 @@ main > form:first-of-type {
     grid-template-columns: 1fr;
   }
 }
+
+/* Réseaux sociaux — footer */
+.footer-social {
+  display: flex;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.footer-social a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  color: #c6d4e4;
+  margin-bottom: 0;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.footer-social a:hover {
+  background: var(--yellow);
+  color: #1f2937;
+}
