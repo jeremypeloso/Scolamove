@@ -1078,9 +1078,16 @@ export default function DevisExpressPage() {
 
   async function handleCopyEmail() {
     const zoneLabel = zone ? ZONES[zone].label : "Destination non renseignée";
-    const texte = `Bonjour,
+    const civilite = teacherName.trim() ? `Bonjour ${teacherName.trim()},` : "Bonjour,";
+    const etabLine = etablissement.trim()
+      ? `\nÉtablissement : ${etablissement.trim()}${ville.trim() ? ` — ${ville.trim()}` : ""}`
+      : "";
+    const dossierLine = dossierSuiviPar.trim() ? `\nDossier suivi par : ${dossierSuiviPar.trim()}` : "";
 
-Suite à votre demande, voici notre proposition pour votre projet de voyage scolaire :
+    const texte = `${civilite}
+
+Suite à votre demande, voici notre proposition pour votre projet de voyage scolaire (référence ${reference}) :
+${etabLine}${dossierLine}
 
 Destination : ${zoneLabel}
 Durée : ${jours} jours / ${nuits} nuits
@@ -1088,8 +1095,8 @@ Effectif : ${eleves} élèves + ${accomp} accompagnateurs (${result.pax} personn
 
 Prix : ${result.prixFerme.toFixed(0)} € par personne, soit ${(result.prixFerme * result.pax).toFixed(0)} € pour le groupe, sous réserve de disponibilités auprès de nos partenaires (hébergement) au moment de la réservation.
 ${assuranceCheck ? `(dont assurance annulation incluse : ${result.assuranceMontant.toFixed(2)} €/pers)\n` : ""}${taxeSejourCheck ? `(dont taxe de séjour incluse : ${result.taxeSejourTotal.toFixed(2)} €/pers)\n` : ""}${cautionCheck ? `Une caution hôtel d'environ ${cautionMontant.toFixed(2)} €/pers sera à régler sur place (restituée en fin de séjour, non incluse au prix).\n` : ""}${chambreIndivCheck ? `Option chambre individuelle pour les accompagnateurs disponible : +${chambreIndivMontant.toFixed(2)} €/nuit/accompagnateur.\n` : ""}
-Un devis détaillé et personnalisé vous sera adressé dès validation de votre intérêt pour le projet.
-
+Vous trouverez le devis détaillé (programme, prix comprend/ne comprend pas) en pièce jointe.
+${teacherEmail.trim() ? `\nCe projet est également accessible depuis votre espace enseignant avec le code ${reference} :\nhttps://www.scolamove.fr/espace-enseignant\n` : ""}
 N'hésitez pas à revenir vers nous pour toute précision.
 
 Cordialement,
