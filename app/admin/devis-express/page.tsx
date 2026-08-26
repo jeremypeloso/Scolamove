@@ -3,6 +3,14 @@
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Script from "next/script";
+import {
+  Document,
+  Page,
+  Text,
+  View,
+  StyleSheet,
+  pdf,
+} from "@react-pdf/renderer";
 
 type ZoneKey =
   | "france"
@@ -275,7 +283,100 @@ export default function DevisExpressPage() {
     }
   }
 
-  function buildDevisHtml() {
+  const pdfStyles = StyleSheet.create({
+    page: { padding: 40, fontFamily: "Helvetica", fontSize: 10, color: "#292420" },
+    letterhead: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "flex-start",
+      borderBottomWidth: 3,
+      borderBottomColor: "#8ec63f",
+      paddingBottom: 10,
+      marginBottom: 20,
+    },
+    brand: { fontFamily: "Helvetica-Bold", fontSize: 18, color: "#1a1a1a" },
+    coords: { fontSize: 8, color: "#777", textAlign: "right", lineHeight: 1.5 },
+    addrBlock: { flexDirection: "row", justifyContent: "space-between", marginBottom: 18 },
+    addrName: { fontFamily: "Helvetica-Bold", fontSize: 10.5, color: "#1a1a1a" },
+    addrMeta: { fontSize: 10, color: "#555" },
+    refLine: { fontSize: 9.5, marginBottom: 16, color: "#444" },
+    refBold: { fontFamily: "Helvetica-Bold", color: "#e8683a" },
+    letter: { fontSize: 10.5, marginBottom: 10, lineHeight: 1.5 },
+    metaTable: { borderWidth: 1, borderColor: "#e2ddd0", marginBottom: 16 },
+    metaRow: { flexDirection: "row", borderBottomWidth: 1, borderBottomColor: "#e2ddd0" },
+    metaLabel: {
+      width: "22%",
+      backgroundColor: "#faf7f0",
+      fontFamily: "Helvetica-Bold",
+      color: "#3d5a45",
+      fontSize: 9,
+      padding: 6,
+    },
+    metaValue: { flex: 1, fontSize: 9.5, padding: 6 },
+    programmeBlock: { marginVertical: 16 },
+    programmeText: {
+      fontSize: 9.5,
+      lineHeight: 1.5,
+      borderLeftWidth: 2,
+      borderLeftColor: "#8ec63f",
+      paddingLeft: 10,
+    },
+    offerTitle: {
+      textAlign: "center",
+      fontSize: 11,
+      fontFamily: "Helvetica-Bold",
+      color: "#fff",
+      backgroundColor: "#e8683a",
+      borderRadius: 4,
+      padding: 8,
+      marginVertical: 16,
+      textTransform: "uppercase",
+      letterSpacing: 1,
+    },
+    offerTable: { borderWidth: 1, borderColor: "#e2ddd0", marginBottom: 6 },
+    offerHeadRow: { flexDirection: "row", backgroundColor: "#3d5a45" },
+    offerHeadCell: { flex: 1, color: "#fff", fontFamily: "Helvetica-Bold", fontSize: 9.5, padding: 7 },
+    offerRow: { flexDirection: "row", borderTopWidth: 1, borderTopColor: "#e2ddd0" },
+    offerLabelCell: { flex: 1, fontSize: 9.5, padding: 7 },
+    offerValueCell: { width: 90, fontSize: 9.5, padding: 7, textAlign: "right", fontFamily: "Helvetica-Bold" },
+    totalBox: {
+      backgroundColor: "#6fae2a",
+      borderRadius: 8,
+      padding: 16,
+      alignItems: "center",
+      marginVertical: 18,
+    },
+    totalLine: { fontSize: 15, fontFamily: "Helvetica-Bold", color: "#fff", marginBottom: 4 },
+    totalPers: { fontSize: 10, color: "#eaf6da", fontFamily: "Helvetica-Bold" },
+    totalNote: { fontSize: 9, color: "#eaf6da", marginTop: 6, fontStyle: "italic" },
+    sectionTitle: {
+      fontSize: 8.5,
+      fontFamily: "Helvetica-Bold",
+      color: "#3d5a45",
+      backgroundColor: "#eef5e5",
+      borderLeftWidth: 3,
+      borderLeftColor: "#8ec63f",
+      padding: 6,
+      marginTop: 16,
+      marginBottom: 6,
+      textTransform: "uppercase",
+      letterSpacing: 0.6,
+    },
+    listItem: { fontSize: 9.5, lineHeight: 1.5, marginBottom: 3, color: "#444" },
+    signoff: { marginTop: 22, fontSize: 10 },
+    signoffName: { fontFamily: "Helvetica-Bold", marginTop: 12, color: "#3d5a45" },
+    legalFooter: {
+      marginTop: 26,
+      paddingTop: 8,
+      borderTopWidth: 1,
+      borderTopColor: "#e2ddd0",
+      fontSize: 7.5,
+      color: "#999",
+      textAlign: "center",
+    },
+  });
+
+  function DevisPdfDocument() {
     const zoneLabel = ZONES[zone].label;
     const refVal = reference || genRef();
     const dateStr = new Date().toLocaleDateString("fr-FR");
@@ -307,96 +408,157 @@ export default function DevisExpressPage() {
         : "Le supplément chambre individuelle",
       "Les dépenses personnelles",
       'Tout ce qui n\'est pas mentionné dans "Le prix comprend"',
-    ].filter(Boolean);
+    ].filter((l): l is string => Boolean(l));
 
-    return `<!DOCTYPE html>
-<html lang="fr"><head><meta charset="UTF-8">
-<title>Devis ${refVal} — Scolamove</title>
-<style>
-  body{font-family:Georgia,'Times New Roman',serif;color:#292420;max-width:760px;margin:0 auto;padding:40px 46px;background:#fff;line-height:1.55;}
-  .letterhead{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #8ec63f;padding-bottom:14px;margin-bottom:26px;}
-  .lh-coords{font-family:'Helvetica Neue',Arial,sans-serif;font-size:10.5px;color:#777;text-align:right;line-height:1.6;}
-  .addr-block{display:flex;justify-content:space-between;margin-bottom:28px;font-family:'Helvetica Neue',Arial,sans-serif;font-size:12.5px;}
-  .addr-dest .name{font-weight:700;margin-bottom:2px;color:#1a1a1a;}
-  .addr-meta{text-align:right;color:#555;}
-  .ref-line{font-family:'Helvetica Neue',Arial,sans-serif;font-size:12px;margin-bottom:22px;color:#444;}
-  .ref-line b{font-weight:700;color:#e8683a;}
-  p.letter{font-size:13.5px;margin:0 0 14px;}
-  .offer-title{font-family:'Helvetica Neue',Arial,sans-serif;text-align:center;font-size:14px;font-weight:800;letter-spacing:0.04em;color:#fff;background:linear-gradient(90deg,#e8683a,#f0925f);border-radius:6px;padding:11px;margin:26px 0 18px;text-transform:uppercase;}
-  .programme-block{margin:22px 0;}
-  .programme-block pre{font-family:Georgia,'Times New Roman',serif;font-size:12.5px;white-space:pre-wrap;line-height:1.6;border-left:3px solid #8ec63f;padding-left:14px;margin:0;}
-  table.pd-meta{width:100%;border-collapse:collapse;margin-bottom:20px;font-family:'Helvetica Neue',Arial,sans-serif;font-size:12.5px;}
-  table.pd-meta td{padding:8px 10px;border:1px solid #e2ddd0;}
-  table.pd-meta .pd-lbl{background:#faf7f0;font-weight:700;width:22%;color:#3d5a45;}
-  table.pd-offre{width:100%;border-collapse:collapse;margin-bottom:6px;font-family:'Helvetica Neue',Arial,sans-serif;font-size:13px;}
-  table.pd-offre td{padding:10px 12px;border:1px solid #e2ddd0;}
-  table.pd-offre td:last-child{text-align:right;font-variant-numeric:tabular-nums;width:130px;font-weight:600;}
-  .pd-offre-head td{font-weight:700;background:#3d5a45;color:#fff;border-color:#3d5a45;}
-  .pd-total-box{background:linear-gradient(135deg,#8ec63f,#6fae2a);border-radius:10px;padding:20px;text-align:center;margin:18px 0 26px;font-family:'Helvetica Neue',Arial,sans-serif;box-shadow:0 4px 14px rgba(110,170,40,0.25);}
-  .pd-total-line{font-size:19px;font-weight:800;color:#fff;margin-bottom:5px;letter-spacing:0.01em;}
-  .pd-total-pers{font-size:13.5px;color:#eaf6da;font-weight:600;}
-  .section-title{font-family:'Helvetica Neue',Arial,sans-serif;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:#3d5a45;background:#eef5e5;border-left:3px solid #8ec63f;padding:7px 10px;margin:22px 0 8px;}
-  ul.section-list{margin:0 0 4px;padding-left:20px;font-size:12.5px;font-family:'Helvetica Neue',Arial,sans-serif;line-height:1.7;color:#444;}
-  .signoff{margin-top:30px;font-size:13px;}
-  .signoff .name{font-weight:700;margin-top:18px;color:#3d5a45;}
-  .legal-footer{margin-top:34px;padding-top:12px;border-top:1px solid #e2ddd0;font-family:'Helvetica Neue',Arial,sans-serif;font-size:9.5px;color:#999;text-align:center;line-height:1.6;}
-  @media print{ body{padding:20px;} .pd-total-box,.offer-title,.pd-offre-head td{-webkit-print-color-adjust:exact;print-color-adjust:exact;} }
-</style></head>
-<body>
-  <div class="letterhead">
-    <div><strong style="font-family:'Helvetica Neue',Arial,sans-serif;font-size:20px;">Scolamove</strong></div>
-    <div class="lh-coords">Scolamove — Agence de voyages scolaires<br>voyages@scolamove.fr</div>
-  </div>
-  <div class="addr-block">
-    <div class="addr-dest"><div class="name">${etabStr}</div></div>
-    <div class="addr-meta">${dateStr}</div>
-  </div>
-  <div class="ref-line">Votre référence de voyage est : <b>${refVal}</b></div>
-  <p class="letter">Bonjour,</p>
-  <p class="letter">Nous avons le plaisir de vous adresser ci-après notre proposition pour votre projet de voyage scolaire :</p>
-  <table class="pd-meta">
-    <tr><td class="pd-lbl">Destination</td><td colspan="3">${zoneLabel}</td></tr>
-    <tr><td class="pd-lbl">Effectif</td><td>${eleves} élèves et ${accomp} accompagnateurs</td><td class="pd-lbl">Période</td><td>${periodeStr}</td></tr>
-  </table>
-  <p class="letter">Je reste à votre disposition pour l'organisation de ce voyage et faire en sorte que votre projet puisse se concrétiser.</p>
-  ${programme.trim() ? `<div class="section-title">Programme du séjour</div><div class="programme-block"><pre>${programme.replace(/[<>&]/g, (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;" }[c] as string))}</pre></div>` : ""}
-  <div class="offer-title">Devis ${zoneLabel}</div>
-  <table class="pd-offre">
-    <tr class="pd-offre-head"><td>Détail de l'offre</td><td>Montants</td></tr>
-    <tr><td>Prix du séjour (voyage à forfait)</td><td>${sejourTotal.toFixed(2)} €</td></tr>
-    <tr><td>Visites / activités</td><td>${result.visitesTotal.toFixed(2)} €</td></tr>
-    ${assuranceCheck ? `<tr><td>Assurance annulation</td><td>${result.assuranceMontant.toFixed(2)} €</td></tr>` : ""}
-    ${taxeSejourCheck ? `<tr><td>Taxe de séjour (${nuits} nuits)</td><td>${result.taxeSejourTotal.toFixed(2)} €</td></tr>` : ""}
-  </table>
-  <div class="pd-total-box">
-    <div class="pd-total-line">Le coût du voyage est de ${(result.prixFerme * result.pax).toFixed(2)} €</div>
-    <div class="pd-total-pers">Soit ${result.prixFerme.toFixed(2)} € par personne (élèves et adultes)</div>
-    ${cautionCheck ? `<div class="pd-total-pers" style="margin-top:6px;font-style:italic;">+ Caution hôtel d'environ ${cautionMontant.toFixed(2)} € par personne, à régler sur place et restituée en fin de séjour (non incluse au prix ci-dessus)</div>` : ""}
-    ${chambreIndivCheck ? `<div class="pd-total-pers" style="margin-top:6px;font-style:italic;">+ Chambre individuelle accompagnateurs (en option) : ${chambreIndivMontant.toFixed(2)} € par nuit et par accompagnateur, sur demande</div>` : ""}
-  </div>
-  <div class="section-title">Le prix comprend</div>
-  <ul class="section-list">${comprend.map((l) => `<li>${l}</li>`).join("")}</ul>
-  <div class="section-title">Le prix ne comprend pas</div>
-  <ul class="section-list">${nComprend.map((l) => `<li>${l}</li>`).join("")}</ul>
-  <div class="section-title">Conditions tarifaires</div>
-  <ul class="section-list"><li>Tarifs valables sous réserve de disponibilité dans les hébergements choisis et auprès de notre partenaire autocariste au moment de la réservation.</li><li>Cette offre est une estimation et ne constitue pas un devis contractuel. Un devis détaillé et personnalisé sera établi dès validation de votre projet.</li></ul>
-  <div class="signoff">Bien cordialement,<div class="name">Jérémy — Scolamove</div></div>
-  <div class="legal-footer">Scolamove — Agence de voyages scolaires · Ce document est une estimation non contractuelle établie à titre indicatif.</div>
-</body></html>`;
+    const programmeLines = programme.trim() ? programme.split("\n") : [];
+
+    return (
+      <Document>
+        <Page size="A4" style={pdfStyles.page}>
+          <View style={pdfStyles.letterhead}>
+            <Text style={pdfStyles.brand}>Scolamove</Text>
+            <Text style={pdfStyles.coords}>Scolamove — Agence de voyages scolaires{"\n"}voyages@scolamove.fr</Text>
+          </View>
+
+          <View style={pdfStyles.addrBlock}>
+            <Text style={pdfStyles.addrName}>{etabStr}</Text>
+            <Text style={pdfStyles.addrMeta}>{dateStr}</Text>
+          </View>
+
+          <Text style={pdfStyles.refLine}>
+            Votre référence de voyage est : <Text style={pdfStyles.refBold}>{refVal}</Text>
+          </Text>
+
+          <Text style={pdfStyles.letter}>Bonjour,</Text>
+          <Text style={pdfStyles.letter}>
+            Nous avons le plaisir de vous adresser ci-après notre proposition pour votre projet de voyage scolaire :
+          </Text>
+
+          <View style={pdfStyles.metaTable}>
+            <View style={pdfStyles.metaRow}>
+              <Text style={pdfStyles.metaLabel}>Destination</Text>
+              <Text style={pdfStyles.metaValue}>{zoneLabel}</Text>
+            </View>
+            <View style={[pdfStyles.metaRow, { borderBottomWidth: 0 }]}>
+              <Text style={pdfStyles.metaLabel}>Effectif</Text>
+              <Text style={pdfStyles.metaValue}>{eleves} élèves et {accomp} accompagnateurs</Text>
+            </View>
+          </View>
+          <View style={[pdfStyles.metaTable, { marginTop: -12 }]}>
+            <View style={[pdfStyles.metaRow, { borderBottomWidth: 0 }]}>
+              <Text style={pdfStyles.metaLabel}>Période</Text>
+              <Text style={pdfStyles.metaValue}>{periodeStr}</Text>
+            </View>
+          </View>
+
+          <Text style={pdfStyles.letter}>
+            Je reste à votre disposition pour l&apos;organisation de ce voyage et faire en sorte que votre projet puisse se concrétiser.
+          </Text>
+
+          {programmeLines.length > 0 && (
+            <View style={pdfStyles.programmeBlock}>
+              <Text style={pdfStyles.sectionTitle}>Programme du séjour</Text>
+              <View style={pdfStyles.programmeText}>
+                {programmeLines.map((line, i) => (
+                  <Text key={i} style={{ marginBottom: line.trim() === "" ? 4 : 1 }}>
+                    {line}
+                  </Text>
+                ))}
+              </View>
+            </View>
+          )}
+
+          <Text style={pdfStyles.offerTitle}>Devis {zoneLabel}</Text>
+
+          <View style={pdfStyles.offerTable}>
+            <View style={pdfStyles.offerHeadRow}>
+              <Text style={pdfStyles.offerHeadCell}>Détail de l&apos;offre</Text>
+              <Text style={[pdfStyles.offerHeadCell, { flex: 0, width: 90, textAlign: "right" }]}>Montants</Text>
+            </View>
+            <View style={pdfStyles.offerRow}>
+              <Text style={pdfStyles.offerLabelCell}>Prix du séjour (voyage à forfait)</Text>
+              <Text style={pdfStyles.offerValueCell}>{sejourTotal.toFixed(2)} €</Text>
+            </View>
+            <View style={pdfStyles.offerRow}>
+              <Text style={pdfStyles.offerLabelCell}>Visites / activités</Text>
+              <Text style={pdfStyles.offerValueCell}>{result.visitesTotal.toFixed(2)} €</Text>
+            </View>
+            {assuranceCheck && (
+              <View style={pdfStyles.offerRow}>
+                <Text style={pdfStyles.offerLabelCell}>Assurance annulation</Text>
+                <Text style={pdfStyles.offerValueCell}>{result.assuranceMontant.toFixed(2)} €</Text>
+              </View>
+            )}
+            {taxeSejourCheck && (
+              <View style={pdfStyles.offerRow}>
+                <Text style={pdfStyles.offerLabelCell}>Taxe de séjour ({nuits} nuits)</Text>
+                <Text style={pdfStyles.offerValueCell}>{result.taxeSejourTotal.toFixed(2)} €</Text>
+              </View>
+            )}
+          </View>
+
+          <View style={pdfStyles.totalBox}>
+            <Text style={pdfStyles.totalLine}>
+              Le coût du voyage est de {(result.prixFerme * result.pax).toFixed(2)} €
+            </Text>
+            <Text style={pdfStyles.totalPers}>
+              Soit {result.prixFerme.toFixed(2)} € par personne (élèves et adultes)
+            </Text>
+            {cautionCheck && (
+              <Text style={pdfStyles.totalNote}>
+                + Caution hôtel d&apos;environ {cautionMontant.toFixed(2)} € par personne, à régler sur place et restituée en fin de séjour (non incluse au prix ci-dessus)
+              </Text>
+            )}
+            {chambreIndivCheck && (
+              <Text style={pdfStyles.totalNote}>
+                + Chambre individuelle accompagnateurs (en option) : {chambreIndivMontant.toFixed(2)} € par nuit et par accompagnateur, sur demande
+              </Text>
+            )}
+          </View>
+
+          <Text style={pdfStyles.sectionTitle}>Le prix comprend</Text>
+          {comprend.map((l, i) => (
+            <Text key={i} style={pdfStyles.listItem}>• {l}</Text>
+          ))}
+
+          <Text style={pdfStyles.sectionTitle}>Le prix ne comprend pas</Text>
+          {nComprend.map((l, i) => (
+            <Text key={i} style={pdfStyles.listItem}>• {l}</Text>
+          ))}
+
+          <Text style={pdfStyles.sectionTitle}>Conditions tarifaires</Text>
+          <Text style={pdfStyles.listItem}>
+            • Tarifs valables sous réserve de disponibilité dans les hébergements choisis et auprès de notre partenaire autocariste au moment de la réservation.
+          </Text>
+          <Text style={pdfStyles.listItem}>
+            • Cette offre est une estimation et ne constitue pas un devis contractuel. Un devis détaillé et personnalisé sera établi dès validation de votre projet.
+          </Text>
+
+          <View style={pdfStyles.signoff}>
+            <Text>Bien cordialement,</Text>
+            <Text style={pdfStyles.signoffName}>Jérémy — Scolamove</Text>
+          </View>
+
+          <Text style={pdfStyles.legalFooter}>
+            Scolamove — Agence de voyages scolaires · Ce document est une estimation non contractuelle établie à titre indicatif.
+          </Text>
+        </Page>
+      </Document>
+    );
   }
 
-  function handleDownload() {
-    const html = buildDevisHtml();
-    const blob = new Blob([html], { type: "text/html" });
+  async function handleDownload() {
+    const blob = await pdf(<DevisPdfDocument />).toBlob();
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `devis-${reference || genRef()}.html`;
+    a.download = `devis-${reference || genRef()}.pdf`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     setTimeout(() => URL.revokeObjectURL(url), 2000);
   }
+
 
   async function handleCopyEmail() {
     const zoneLabel = ZONES[zone].label;
@@ -457,23 +619,341 @@ Jérémy — Scolamove`;
         </nav>
       </aside>
 
-      <section className="admin-content" style={{ maxWidth: 920 }}>
-        <div className="admin-topbar">
-          <div>
-            <span>Administration</span>
+      <section className="admin-content de-content" style={{ maxWidth: 960 }}>
+        <style jsx>{`
+          .de-content {
+            background: linear-gradient(180deg, #f4f9f2 0%, #f7f9fb 340px, transparent 340px);
+          }
+          .de-hero {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+            background: linear-gradient(120deg, #123c3f 0%, #1c5450 60%, #4f9d7a 130%);
+            border-radius: 22px;
+            padding: 26px 30px;
+            margin-bottom: 26px;
+            box-shadow: 0 16px 34px rgba(18, 60, 63, 0.28);
+          }
+          .de-hero-title {
+            color: #fff;
+          }
+          .de-hero-eyebrow {
+            display: inline-block;
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            color: #d7f2c8;
+            background: rgba(255, 255, 255, 0.12);
+            padding: 4px 10px;
+            border-radius: 999px;
+            margin-bottom: 10px;
+          }
+          .de-hero h1 {
+            color: #fff;
+            font-size: 28px;
+            margin: 0;
+          }
+          .de-hero p {
+            color: #dcece2;
+            font-size: 13px;
+            margin: 8px 0 0;
+            max-width: 480px;
+          }
+          .de-hero-logo {
+            background: #fff;
+            border-radius: 14px;
+            padding: 10px 16px;
+            box-shadow: 0 8px 18px rgba(0, 0, 0, 0.18);
+          }
+
+          .de-panel {
+            margin-bottom: 22px;
+            position: relative;
+            border-top: 4px solid var(--panel-accent, var(--green));
+            overflow: hidden;
+          }
+          .de-panel.identite { --panel-accent: #f6d77a; }
+          .de-panel.voyage { --panel-accent: #4f9d7a; }
+          .de-panel.options { --panel-accent: #e8683a; }
+          .de-panel.programme { --panel-accent: #123c3f; }
+
+          .de-panel-head {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 18px;
+          }
+          .de-panel-icon {
+            width: 38px;
+            height: 38px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            background: color-mix(in srgb, var(--panel-accent, var(--green)) 16%, white);
+            flex-shrink: 0;
+          }
+          .de-panel-head h2 {
+            margin: 0;
+            font-size: 16px;
+            color: var(--navy);
+          }
+          .de-panel-head .de-eyebrow {
+            display: block;
+            font-size: 10.5px;
+            font-weight: 800;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--muted);
+            margin-bottom: 2px;
+          }
+
+          .de-panel label {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--muted);
+            margin: 0;
+          }
+          .de-panel input[type="text"],
+          .de-panel input[type="number"],
+          .de-panel select,
+          .de-panel textarea,
+          .de-panel input:not([type]) {
+            font-family: inherit;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--navy);
+            padding: 11px 13px;
+            border-radius: 12px;
+            border: 1.5px solid #dce8f5;
+            background: #fbfdff;
+            transition: border-color 0.15s ease, box-shadow 0.15s ease;
+          }
+          .de-panel input:focus,
+          .de-panel select:focus,
+          .de-panel textarea:focus {
+            outline: none;
+            border-color: #4f9d7a;
+            box-shadow: 0 0 0 4px rgba(79, 157, 122, 0.15);
+          }
+          .de-panel input[type="file"] {
+            border: 1.5px dashed #c8dceb;
+            border-radius: 12px;
+            padding: 14px;
+            background: #fbfdff;
+            font-size: 13px;
+          }
+
+          .de-check-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: #fbfdff;
+            border: 1.5px solid #e5eef8;
+            border-radius: 14px;
+            padding: 12px 14px;
+            margin-top: 14px;
+            transition: border-color 0.15s ease, background 0.15s ease;
+          }
+          .de-check-row:has(input:checked) {
+            border-color: #4f9d7a;
+            background: #f0f9ec;
+          }
+          .de-check-row input {
+            width: 19px;
+            height: 19px;
+            accent-color: #4f9d7a;
+          }
+          .de-check-row span {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--navy);
+          }
+
+          .de-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13.5px;
+            font-weight: 800;
+            padding: 12px 20px;
+            border-radius: 999px;
+            border: none;
+            cursor: pointer;
+            transition: transform 0.12s ease, box-shadow 0.12s ease;
+          }
+          .de-btn:active {
+            transform: translateY(1px);
+          }
+          .de-btn-primary {
+            background: linear-gradient(120deg, #4f9d7a, #3d8064);
+            color: #fff;
+            box-shadow: 0 10px 20px rgba(79, 157, 122, 0.35);
+          }
+          .de-btn-primary:hover {
+            box-shadow: 0 12px 26px rgba(79, 157, 122, 0.45);
+          }
+          .de-btn-accent {
+            background: linear-gradient(120deg, #e8683a, #d85426);
+            color: #fff;
+            box-shadow: 0 10px 20px rgba(232, 104, 58, 0.35);
+          }
+          .de-btn-accent:hover {
+            box-shadow: 0 12px 26px rgba(232, 104, 58, 0.45);
+          }
+          .de-btn-outline {
+            background: #fff;
+            color: var(--navy);
+            border: 1.5px solid #dce8f5;
+            font-size: 12px;
+            padding: 8px 14px;
+          }
+
+          .de-result {
+            background: linear-gradient(135deg, #123c3f 0%, #1c5450 55%, #2d6b58 100%);
+            border-radius: 22px;
+            padding: 28px 30px;
+            margin: 24px 0;
+            color: #f6f4ee;
+            box-shadow: 0 18px 36px rgba(18, 60, 63, 0.3);
+          }
+          .de-result-eyebrow {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.14em;
+            color: #b7d9c8;
+            font-weight: 800;
+          }
+          .de-result-price {
+            font-size: 42px;
+            font-weight: 900;
+            letter-spacing: -0.01em;
+            margin: 6px 0 18px;
+          }
+          .de-result-price small {
+            font-size: 15px;
+            font-weight: 500;
+            color: #b7d9c8;
+            margin-left: 8px;
+          }
+          .de-result-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px 24px;
+            border-top: 1px solid rgba(255, 255, 255, 0.18);
+            padding-top: 18px;
+            font-size: 13px;
+          }
+          .de-result-grid .row {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            border-bottom: 1px dashed rgba(255, 255, 255, 0.14);
+            padding-bottom: 6px;
+          }
+          .de-result-grid .row.italic {
+            font-style: italic;
+            color: #d7f2c8;
+          }
+          .de-result-footer {
+            margin-top: 16px;
+            font-size: 12.5px;
+            color: #cfe6d9;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            padding: 10px 14px;
+          }
+          .de-disclaimer {
+            font-size: 11.5px;
+            color: #8a6a3c;
+            background: #fdf3e2;
+            border-left: 4px solid #e8683a;
+            border-radius: 10px;
+            padding: 12px 16px;
+            margin-top: 10px;
+          }
+          .de-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 16px;
+            flex-wrap: wrap;
+            align-items: center;
+          }
+          .de-copystate {
+            font-size: 12.5px;
+            font-weight: 700;
+            color: #3d8064;
+          }
+          .de-hint {
+            font-size: 11px;
+            color: var(--muted);
+            margin-top: 8px;
+            line-height: 1.6;
+          }
+          .de-panel details summary {
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 800;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: #4f9d7a;
+            padding: 8px 0;
+          }
+          .de-estimate-msg {
+            font-size: 12.5px;
+            color: #3d8064;
+            background: #f0f9ec;
+            border-radius: 10px;
+            padding: 10px 12px;
+            margin-top: 10px;
+          }
+          .de-ocr-status {
+            font-size: 12px;
+            color: var(--muted);
+            margin-top: 8px;
+          }
+
+          @media (max-width: 720px) {
+            .de-hero {
+              flex-direction: column;
+              align-items: flex-start;
+            }
+            .de-result-grid {
+              grid-template-columns: 1fr;
+            }
+          }
+        `}</style>
+
+        <div className="de-hero">
+          <div className="de-hero-title">
+            <span className="de-hero-eyebrow">Outil interne</span>
             <h1>Devis Express</h1>
+            <p>
+              Estimation instantanée par ratios moyens — sans sourcing détaillé. À envoyer en
+              première réponse client ; le devis ferme se construit uniquement après accord de
+              principe.
+            </p>
           </div>
-          <Image src="/images/logo-scolamove.png" alt="Scolamove" width={140} height={40} style={{ objectFit: "contain" }} />
+          <div className="de-hero-logo">
+            <Image src="/images/logo-scolamove.png" alt="Scolamove" width={140} height={40} style={{ objectFit: "contain", display: "block" }} />
+          </div>
         </div>
 
-        <p style={{ color: "#6b7268", fontSize: 13, marginBottom: 20 }}>
-          Estimation instantanée par ratios moyens — sans sourcing détaillé. À envoyer en première
-          réponse client ; le devis ferme se construit uniquement après accord de principe.
-        </p>
-
         {/* Identification */}
-        <div className="admin-panel">
-          <h2>Identification du devis</h2>
+        <div className="admin-panel de-panel identite">
+          <div className="de-panel-head">
+            <div className="de-panel-icon">🗂️</div>
+            <div>
+              <span className="de-eyebrow">Étape 1</span>
+              <h2>Identification du devis</h2>
+            </div>
+          </div>
           <div className="admin-form-grid two">
             <label>
               Établissement
@@ -495,8 +975,14 @@ Jérémy — Scolamove`;
         </div>
 
         {/* Voyage & marges */}
-        <div className="admin-panel">
-          <h2>Le voyage</h2>
+        <div className="admin-panel de-panel voyage">
+          <div className="de-panel-head">
+            <div className="de-panel-icon">🚌</div>
+            <div>
+              <span className="de-eyebrow">Étape 2</span>
+              <h2>Le voyage</h2>
+            </div>
+          </div>
           <div className="admin-form-grid two">
             <label>
               Destination / zone
@@ -542,9 +1028,9 @@ Jérémy — Scolamove`;
             </label>
           </div>
 
-          <label style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 16 }}>
+          <label style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 16 }} className="de-check-row" >
             <input type="checkbox" checked={sousTraite} onChange={(e) => setSousTraite(e.target.checked)} style={{ width: "auto" }} />
-            Sous-traiter le transport (autocariste tiers)
+            <span>Sous-traiter le transport (autocariste tiers)</span>
           </label>
           <div className="admin-form-grid two" style={{ marginTop: 8 }}>
             <label>
@@ -552,7 +1038,7 @@ Jérémy — Scolamove`;
               <input type="number" value={margeTransport} min={0} onChange={(e) => setMargeTransport(Number(e.target.value))} />
             </label>
           </div>
-          <p style={{ fontSize: 11, color: "#6b7268", marginTop: 8 }}>
+          <p className="de-hint">
             Par défaut, transport assuré par la flotte Festimove : coût réel estimé à ~70% du tarif
             marché, ratio calibré sur un car de 43 places (le plus petit de la flotte).
           </p>
@@ -583,11 +1069,17 @@ Jérémy — Scolamove`;
         </div>
 
         {/* Options tarifaires */}
-        <div className="admin-panel">
-          <h2>Options tarifaires (hors forfait)</h2>
-          <label style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <div className="admin-panel de-panel options">
+          <div className="de-panel-head">
+            <div className="de-panel-icon">💶</div>
+            <div>
+              <span className="de-eyebrow">Étape 3</span>
+              <h2>Options tarifaires (hors forfait)</h2>
+            </div>
+          </div>
+          <label className="de-check-row">
             <input type="checkbox" checked={assuranceCheck} onChange={(e) => setAssuranceCheck(e.target.checked)} style={{ width: "auto" }} />
-            Ajouter l&apos;assurance annulation au devis
+            <span>Ajouter l&apos;assurance annulation au devis</span>
           </label>
           <div className="admin-form-grid two" style={{ marginTop: 8 }}>
             <label>
@@ -600,27 +1092,27 @@ Jérémy — Scolamove`;
             </label>
           </div>
 
-          <label style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 16 }}>
+          <label style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 16 }} className="de-check-row">
             <input type="checkbox" checked={taxeSejourCheck} onChange={(e) => setTaxeSejourCheck(e.target.checked)} style={{ width: "auto" }} />
-            Ajouter la taxe de séjour au devis
+            <span>Ajouter la taxe de séjour au devis</span>
           </label>
           <label>
             Montant par nuit et par personne (€)
             <input type="number" step={0.1} value={taxeSejourMontant} onChange={(e) => setTaxeSejourMontant(Number(e.target.value))} />
           </label>
 
-          <label style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 16 }}>
+          <label style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 16 }} className="de-check-row">
             <input type="checkbox" checked={cautionCheck} onChange={(e) => setCautionCheck(e.target.checked)} style={{ width: "auto" }} />
-            Mentionner la caution hôtel (à régler sur place, non incluse au prix)
+            <span>Mentionner la caution hôtel (à régler sur place, non incluse au prix)</span>
           </label>
           <label>
             Montant par personne (€)
             <input type="number" value={cautionMontant} onChange={(e) => setCautionMontant(Number(e.target.value))} />
           </label>
 
-          <label style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 16 }}>
+          <label style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 16 }} className="de-check-row">
             <input type="checkbox" checked={chambreIndivCheck} onChange={(e) => setChambreIndivCheck(e.target.checked)} style={{ width: "auto" }} />
-            Proposer la chambre individuelle pour les accompagnateurs
+            <span>Proposer la chambre individuelle pour les accompagnateurs</span>
           </label>
           <label>
             Supplément par nuit et par accompagnateur (€)
@@ -629,8 +1121,14 @@ Jérémy — Scolamove`;
         </div>
 
         {/* Programme + OCR */}
-        <div className="admin-panel">
-          <h2>Programme du séjour (optionnel)</h2>
+        <div className="admin-panel de-panel programme">
+          <div className="de-panel-head">
+            <div className="de-panel-icon">📋</div>
+            <div>
+              <span className="de-eyebrow">Optionnel</span>
+              <h2>Programme du séjour</h2>
+            </div>
+          </div>
           <label>
             Colle ici le programme jour par jour (JOUR 1, JOUR 2...)
             <textarea rows={8} value={programme} onChange={(e) => setProgramme(e.target.value)} placeholder={"JOUR 1 : Départ...\nJOUR 2 : Visite du site archéologique..."} />
@@ -641,15 +1139,15 @@ Jérémy — Scolamove`;
               <input type="number" value={prixParVisite} onChange={(e) => setPrixParVisite(Number(e.target.value))} />
             </label>
             <div style={{ display: "flex", alignItems: "flex-end" }}>
-              <button type="button" onClick={estimateVisites}>
+              <button type="button" onClick={estimateVisites} className="de-btn de-btn-outline">
                 Estimer le budget visites
               </button>
             </div>
           </div>
           {estimateMsg && (
-            <p style={{ fontSize: 12.5, color: "#3d5a45", marginTop: 10 }}>
+            <p className="de-estimate-msg">
               {estimateMsg}{" "}
-              <button type="button" onClick={applyEstimate} style={{ fontSize: 11, padding: "4px 8px" }}>
+              <button type="button" onClick={applyEstimate} className="de-btn de-btn-outline" style={{ marginLeft: 6 }}>
                 Appliquer au champ visites
               </button>
             </p>
@@ -667,60 +1165,48 @@ Jérémy — Scolamove`;
                 }}
               />
             </label>
-            {ocrStatus && <p style={{ fontSize: 12, color: "#6b7268", marginTop: 8 }}>{ocrStatus}</p>}
+            {ocrStatus && <p className="de-ocr-status">{ocrStatus}</p>}
           </div>
         </div>
 
         {/* Résultat */}
-        <div
-          style={{
-            background: "#1c2a24",
-            color: "#f6f4ee",
-            borderRadius: 8,
-            padding: 24,
-            margin: "20px 0",
-          }}
-        >
-          <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.1em", color: "#a9b8ae" }}>
-            Prix ferme
+        <div className="de-result">
+          <div className="de-result-eyebrow">Prix ferme</div>
+          <div className="de-result-price">
+            {result.prixFerme.toFixed(0)} € <small>/ personne</small>
           </div>
-          <div style={{ fontSize: 32, fontWeight: 800 }}>
-            {result.prixFerme.toFixed(0)} € <small style={{ fontSize: 14, fontWeight: 400, color: "#a9b8ae" }}>/ personne</small>
-          </div>
-          <div style={{ marginTop: 16, fontSize: 13, borderTop: "1px solid #3a4a3e", paddingTop: 14 }}>
-            <div>Transport {sousTraite ? "(sous-traité)" : "(flotte Festimove)"} : {result.transportWithMarge.toFixed(0)} €</div>
-            <div>Hébergement ({nuits} nuits) : {result.hebergTotal.toFixed(0)} €</div>
-            <div>Pension complète ({jours} jours) : {result.repasTotal.toFixed(0)} €</div>
-            <div>Visites / activités : {result.visitesTotal.toFixed(0)} €</div>
-            <div>Assistance / gestion : {result.assistTotal.toFixed(0)} €</div>
-            {assuranceCheck && <div>+ Assurance annulation : {result.assuranceMontant.toFixed(2)} €</div>}
-            {taxeSejourCheck && <div>+ Taxe de séjour : {result.taxeSejourTotal.toFixed(2)} €</div>}
-            {cautionCheck && <div style={{ fontStyle: "italic" }}>Caution hôtel (non incluse) : {cautionMontant.toFixed(2)} €</div>}
+          <div className="de-result-grid">
+            <div className="row"><span>Transport {sousTraite ? "(sous-traité)" : "(flotte Festimove)"}</span><span>{result.transportWithMarge.toFixed(0)} €</span></div>
+            <div className="row"><span>Hébergement ({nuits} nuits)</span><span>{result.hebergTotal.toFixed(0)} €</span></div>
+            <div className="row"><span>Pension complète ({jours} jours)</span><span>{result.repasTotal.toFixed(0)} €</span></div>
+            <div className="row"><span>Visites / activités</span><span>{result.visitesTotal.toFixed(0)} €</span></div>
+            <div className="row"><span>Assistance / gestion</span><span>{result.assistTotal.toFixed(0)} €</span></div>
+            {assuranceCheck && <div className="row"><span>+ Assurance annulation</span><span>{result.assuranceMontant.toFixed(2)} €</span></div>}
+            {taxeSejourCheck && <div className="row"><span>+ Taxe de séjour</span><span>{result.taxeSejourTotal.toFixed(2)} €</span></div>}
+            {cautionCheck && <div className="row italic"><span>Caution hôtel (non incluse)</span><span>{cautionMontant.toFixed(2)} €</span></div>}
             {chambreIndivCheck && (
-              <div style={{ fontStyle: "italic" }}>
-                + Chambre individuelle accompagnateurs (option) : {result.chambreIndivTotalGroupe.toFixed(2)} € groupe
-              </div>
+              <div className="row italic"><span>+ Chambre individuelle accompagnateurs (option)</span><span>{result.chambreIndivTotalGroupe.toFixed(2)} € groupe</span></div>
             )}
           </div>
-          <div style={{ marginTop: 10, fontSize: 12, color: "#a9b8ae" }}>
+          <div className="de-result-footer">
             Groupe de {result.pax} personnes ({eleves} élèves + {accomp} accompagnateurs) → coût total
             groupe : {(result.prixFerme * result.pax).toFixed(0)} €.
           </div>
         </div>
 
-        <p style={{ fontSize: 11.5, color: "#6b7268", background: "#efece2", borderLeft: "3px solid #c96a3b", padding: "12px 14px" }}>
+        <p className="de-disclaimer">
           Ce prix est calculé à partir de ratios moyens et de vos marges. Il constitue une base de
           devis ferme, sous réserve de disponibilités au moment de la réservation.
         </p>
 
-        <div style={{ display: "flex", gap: 10, marginTop: 14, flexWrap: "wrap", alignItems: "center" }}>
-          <button type="button" onClick={handleCopyEmail}>
+        <div className="de-actions">
+          <button type="button" onClick={handleCopyEmail} className="de-btn de-btn-primary">
             Copier le texte pour l&apos;email client
           </button>
-          <button type="button" onClick={handleDownload} style={{ background: "#c96a3b", color: "#fff" }}>
+          <button type="button" onClick={handleDownload} className="de-btn de-btn-accent">
             Télécharger le devis (PDF)
           </button>
-          {copyState && <span style={{ fontSize: 12, color: "#3d5a45" }}>{copyState}</span>}
+          {copyState && <span className="de-copystate">{copyState}</span>}
         </div>
       </section>
     </main>
