@@ -38,10 +38,14 @@ function SejoursContent() {
   const q = searchParams.get("q");
   const levelParam = searchParams.get("level");
   const countryParam = searchParams.get("country");
+  const regionParam = searchParams.get("region");
+  const themeParam = searchParams.get("theme");
 
   if (q) setQuery(q);
   if (levelParam) setLevel(levelParam);
   if (countryParam) setCountry(countryParam);
+  if (regionParam) setRegion(regionParam);
+  if (themeParam) setTheme(themeParam);
 }, [searchParams]);
 
   useEffect(() => {

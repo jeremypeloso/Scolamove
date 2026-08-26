@@ -1,7 +1,7 @@
 import DestinationCarousel from "@/components/DestinationCarousel";
 import FeaturedCarousel from "@/components/FeaturedCarousel";
 import Header from "@/components/Header";
-import QuoteForm from "@/components/QuoteForm";
+import SejoursSearchBar from "@/components/SejoursSearchBar";
 import TripsSection from "@/components/TripsSection";
 
 const steps = [
@@ -33,7 +33,7 @@ export default function Home() {
         <section className="search-band" id="devis">
           <div className="container">
             <div className="search-shell clean-search-shell">
-              <QuoteForm />
+              <SejoursSearchBar />
             </div>
           </div>
         </section>

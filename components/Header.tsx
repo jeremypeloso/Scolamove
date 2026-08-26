@@ -24,7 +24,7 @@ export default function Header() {
       <a href="/#sejours">Nos séjours</a>
       <a href="/#destinations">Destinations</a>
       <a href="/catalogue">Catalogue 2026-2027</a>
-      <a href="/#agence">L’agence</a>
+      <a href="/qui-sommes-nous">L’agence</a>
       <a href="/#process">Comment ça marche</a>
       <a href="/espace-enseignant" className="teacher-menu-button">
         Espace enseignant
