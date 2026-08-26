@@ -49,9 +49,8 @@ const ZONES: Record<ZoneKey, { label: string; ratios: ZoneRatios }> = {
 const ADMIN_PASSWORD_FLAG = "scolamove-admin";
 
 function genRef() {
-  const d = new Date();
-  const rand = Math.floor(1000 + Math.random() * 9000);
-  return `SM-${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}-${rand}`;
+  const digits = Math.floor(100000 + Math.random() * 900000);
+  return `SCOLA-${digits}`;
 }
 
 declare global {
@@ -173,6 +172,13 @@ export default function DevisExpressPage() {
   const [ville, setVille] = useState("");
   const [reference, setReference] = useState("");
   const [dateVoyage, setDateVoyage] = useState("");
+
+  // La référence est obligatoire dès la création d'un devis et ne doit jamais changer
+  // ensuite : elle identifie le dossier de bout en bout (nom de fichier PDF, accès
+  // espace enseignant...). Générée une seule fois au chargement d'un devis vierge.
+  useEffect(() => {
+    setReference((prev) => prev || genRef());
+  }, []);
 
   // --- Programme & OCR ---
   const [programme, setProgramme] = useState("");
@@ -616,7 +622,7 @@ export default function DevisExpressPage() {
 
   function DevisPdfDocument({ logoDataUrl, refOverride }: { logoDataUrl: string; refOverride?: string }) {
     const zoneLabel = zone ? ZONES[zone].label : "Destination non renseignée";
-    const refVal = refOverride || reference || genRef();
+    const refVal = refOverride || reference;
     const dateStr = new Date().toLocaleDateString("fr-FR");
     const etabStr = [etablissement, ville].filter(Boolean).join(" — ") || "Établissement scolaire";
     const periodeStr = dateVoyage || `${jours} jours / ${nuits} nuits (dates à préciser)`;
@@ -842,8 +848,7 @@ export default function DevisExpressPage() {
 
   async function handleSaveDevis() {
     setSaveStatus("Enregistrement...");
-    const refVal = reference || genRef();
-    if (!reference) setReference(refVal);
+    const refVal = reference;
     const payload = {
       reference: refVal,
       etablissement: etablissement || null,
@@ -945,7 +950,7 @@ export default function DevisExpressPage() {
     setEtablissement("");
     setDossierSuiviPar("");
     setVille("");
-    setReference("");
+    setReference(genRef());
     setDateVoyage("");
     setProgramme("");
     setPrixParVisite(6);
@@ -984,8 +989,7 @@ export default function DevisExpressPage() {
     }
     // Une seule référence générée pour tout le document : évite qu'un devis sans référence
     // saisie se retrouve avec un nom de fichier différent de la référence écrite dedans.
-    const refVal = reference || genRef();
-    if (!reference) setReference(refVal);
+    const refVal = reference;
     const blob = await pdf(<DevisPdfDocument logoDataUrl={logoDataUrl} refOverride={refVal} />).toBlob();
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");

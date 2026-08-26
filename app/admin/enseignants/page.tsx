@@ -33,8 +33,8 @@ type TeacherProject = {
 };
 
 function generateAccessCode() {
-  const random = Math.random().toString(36).slice(2, 6).toUpperCase();
-  return `SCOLA-${random}`;
+  const digits = Math.floor(100000 + Math.random() * 900000);
+  return `SCOLA-${digits}`;
 }
 
 function emptyForm() {

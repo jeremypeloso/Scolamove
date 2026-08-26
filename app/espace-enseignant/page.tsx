@@ -66,7 +66,7 @@ export default function TeacherLoginPage() {
               <input
                 value={accessCode}
                 onChange={(event) => setAccessCode(event.target.value)}
-                placeholder="SCOLA-XXXX"
+                placeholder="SCOLA-XXXXXX"
                 required
               />
             </label>
