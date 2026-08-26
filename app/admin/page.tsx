@@ -636,6 +636,10 @@ export default function AdminPage() {
           >
             Réglages
           </button>
+
+          <a href="/admin/devis-express" className="admin-menu-link">
+            Devis Express
+          </a>
         </nav>
 
         <button className="admin-logout" onClick={handleLogout}>

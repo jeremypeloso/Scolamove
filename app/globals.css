@@ -1669,6 +1669,22 @@ footer p {
   color: #c6d4e4;
 }
 
+.admin-menu-link {
+  display: block;
+  border: 0;
+  border-radius: 12px;
+  padding: 13px 14px;
+  text-align: left;
+  font-weight: 700;
+  background: transparent;
+  color: #c6d4e4;
+  text-decoration: none;
+}
+
+.admin-menu-link:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
 .admin-menu button.active {
   background: var(--yellow);
   color: #1f2937;
