@@ -10,6 +10,7 @@ import {
   View,
   StyleSheet,
   pdf,
+  Image as PdfImage,
 } from "@react-pdf/renderer";
 import { supabase } from "@/lib/supabase";
 
@@ -71,7 +72,7 @@ declare global {
 }
 
 type SavedDevisData = {
-  zone: ZoneKey;
+  zone: ZoneKey | "";
   jours: number;
   nuits: number;
   eleves: number;
@@ -92,6 +93,7 @@ type SavedDevisData = {
   chambreIndivCheck: boolean;
   chambreIndivMontant: number;
   etablissement: string;
+  dossierSuiviPar: string;
   ville: string;
   reference: string;
   dateVoyage: string;
@@ -131,50 +133,50 @@ export default function DevisExpressPage() {
   }, []);
 
   // --- Voyage ---
-  const [zone, setZone] = useState<ZoneKey>("italie");
-  const [jours, setJours] = useState(7);
-  const [nuits, setNuits] = useState(4);
-  const [eleves, setEleves] = useState(45);
-  const [accomp, setAccomp] = useState(4);
+  const [zone, setZone] = useState<ZoneKey | "">("");
+  const [jours, setJours] = useState(0);
+  const [nuits, setNuits] = useState(0);
+  const [eleves, setEleves] = useState(0);
+  const [accomp, setAccomp] = useState(0);
 
   // --- Niveau & marge ---
   const [confort, setConfort] = useState<"0.85" | "1" | "1.25">("1");
-  const [visites, setVisites] = useState(8);
-  const [marge, setMarge] = useState(5);
+  const [visites, setVisites] = useState(0);
+  const [marge, setMarge] = useState(0);
 
   // --- Transport ---
   const [sousTraite, setSousTraite] = useState(false);
-  const [margeTransport, setMargeTransport] = useState(20);
+  const [margeTransport, setMargeTransport] = useState(0);
 
   // --- Ratios ajustables (seedés par zone) ---
-  const [ratios, setRatios] = useState<ZoneRatios>(ZONES.italie.ratios);
+  const emptyRatios: ZoneRatios = { t: 0, h: 0, r: 0, a: 0 };
+  const [ratios, setRatios] = useState<ZoneRatios>(emptyRatios);
   useEffect(() => {
-    setRatios(ZONES[zone].ratios);
+    setRatios(zone ? ZONES[zone].ratios : emptyRatios);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [zone]);
 
   // --- Options tarifaires ---
   const [assuranceCheck, setAssuranceCheck] = useState(false);
-  const [assurancePct, setAssurancePct] = useState(2.5);
-  const [assuranceMin, setAssuranceMin] = useState(6);
+  const [assurancePct, setAssurancePct] = useState(0);
+  const [assuranceMin, setAssuranceMin] = useState(0);
   const [taxeSejourCheck, setTaxeSejourCheck] = useState(false);
-  const [taxeSejourMontant, setTaxeSejourMontant] = useState(1.5);
+  const [taxeSejourMontant, setTaxeSejourMontant] = useState(0);
   const [cautionCheck, setCautionCheck] = useState(false);
-  const [cautionMontant, setCautionMontant] = useState(10);
+  const [cautionMontant, setCautionMontant] = useState(0);
   const [chambreIndivCheck, setChambreIndivCheck] = useState(false);
-  const [chambreIndivMontant, setChambreIndivMontant] = useState(25);
+  const [chambreIndivMontant, setChambreIndivMontant] = useState(0);
 
   // --- Identification devis ---
   const [etablissement, setEtablissement] = useState("");
+  const [dossierSuiviPar, setDossierSuiviPar] = useState("");
   const [ville, setVille] = useState("");
   const [reference, setReference] = useState("");
   const [dateVoyage, setDateVoyage] = useState("");
-  useEffect(() => {
-    setReference(genRef());
-  }, []);
 
   // --- Programme & OCR ---
   const [programme, setProgramme] = useState("");
-  const [prixParVisite, setPrixParVisite] = useState(6);
+  const [prixParVisite, setPrixParVisite] = useState(0);
   const [estimateMsg, setEstimateMsg] = useState<string | null>(null);
   const [ocrStatus, setOcrStatus] = useState("");
   const [ocrRawText, setOcrRawText] = useState("");
@@ -612,13 +614,14 @@ export default function DevisExpressPage() {
     },
   });
 
-  function DevisPdfDocument() {
-    const zoneLabel = ZONES[zone].label;
+  function DevisPdfDocument({ logoDataUrl }: { logoDataUrl: string }) {
+    const zoneLabel = zone ? ZONES[zone].label : "Destination non renseignée";
     const refVal = reference || genRef();
     const dateStr = new Date().toLocaleDateString("fr-FR");
     const etabStr = [etablissement, ville].filter(Boolean).join(" — ") || "Établissement scolaire";
     const periodeStr = dateVoyage || `${jours} jours / ${nuits} nuits (dates à préciser)`;
     const sejourTotal = result.prixFerme - result.visitesTotal;
+    const logoUrl = logoDataUrl;
 
     const comprend = [
       sousTraite
@@ -650,9 +653,10 @@ export default function DevisExpressPage() {
 
     return (
       <Document>
+        {/* PAGE 1 — Identification + tarification + mot de clôture + signature */}
         <Page size="A4" style={pdfStyles.page}>
           <View style={pdfStyles.letterhead}>
-            <Text style={pdfStyles.brand}>Scolamove</Text>
+            {logoUrl ? <PdfImage src={logoUrl} style={{ width: 130, objectFit: "contain" }} /> : <Text style={pdfStyles.brand}>Scolamove</Text>}
             <Text style={pdfStyles.coords}>Scolamove — Agence de voyages scolaires{"\n"}contact@scolamove.fr</Text>
           </View>
 
@@ -663,6 +667,7 @@ export default function DevisExpressPage() {
 
           <Text style={pdfStyles.refLine}>
             Votre référence de voyage est : <Text style={pdfStyles.refBold}>{refVal}</Text>
+            {dossierSuiviPar ? `\nDossier suivi par : ${dossierSuiviPar}` : ""}
           </Text>
 
           <Text style={pdfStyles.letter}>Bonjour,</Text>
@@ -684,10 +689,6 @@ export default function DevisExpressPage() {
               <Text style={pdfStyles.metaValue}>{periodeStr}</Text>
             </View>
           </View>
-
-          <Text style={pdfStyles.letter}>
-            Je reste à votre disposition pour l&apos;organisation de ce voyage et faire en sorte que votre projet puisse se concrétiser.
-          </Text>
 
           <Text style={pdfStyles.offerTitle}>Devis {zoneLabel}</Text>
 
@@ -737,6 +738,27 @@ export default function DevisExpressPage() {
             )}
           </View>
 
+          <Text style={pdfStyles.letter}>
+            Je reste à votre disposition pour l&apos;organisation de ce voyage et faire en sorte que votre projet puisse se concrétiser.
+          </Text>
+
+          <View style={pdfStyles.signoff}>
+            <Text>Bien cordialement,</Text>
+            <Text style={pdfStyles.signoffName}>Jérémy — Scolamove</Text>
+          </View>
+
+          <Text style={pdfStyles.legalFooter}>
+            Scolamove — Agence de voyages scolaires · Ce document est une estimation non contractuelle établie à titre indicatif.
+          </Text>
+        </Page>
+
+        {/* PAGE 2 — Le prix comprend / ne comprend pas / conditions tarifaires */}
+        <Page size="A4" style={pdfStyles.page}>
+          <View style={pdfStyles.letterhead}>
+            {logoUrl ? <PdfImage src={logoUrl} style={{ width: 110, objectFit: "contain" }} /> : <Text style={pdfStyles.brand}>Scolamove</Text>}
+            <Text style={pdfStyles.coords}>Devis {refVal}</Text>
+          </View>
+
           <Text style={pdfStyles.sectionTitle}>Le prix comprend</Text>
           {comprend.map((l, i) => (
             <Text key={i} style={pdfStyles.listItem}>• {l}</Text>
@@ -755,28 +777,33 @@ export default function DevisExpressPage() {
             • Cette offre est une estimation et ne constitue pas un devis contractuel. Un devis détaillé et personnalisé sera établi dès validation de votre projet.
           </Text>
 
-          {programmeLines.length > 0 && (
-            <View style={pdfStyles.programmeBlock} break>
-              <Text style={pdfStyles.sectionTitle}>Programme du séjour</Text>
-              <View style={pdfStyles.programmeText}>
-                {programmeLines.map((line, i) => (
-                  <Text key={i} style={{ marginBottom: line.trim() === "" ? 4 : 1 }}>
-                    {line}
-                  </Text>
-                ))}
-              </View>
-            </View>
-          )}
-
-          <View style={pdfStyles.signoff}>
-            <Text>Bien cordialement,</Text>
-            <Text style={pdfStyles.signoffName}>Jérémy — Scolamove</Text>
-          </View>
-
           <Text style={pdfStyles.legalFooter}>
             Scolamove — Agence de voyages scolaires · Ce document est une estimation non contractuelle établie à titre indicatif.
           </Text>
         </Page>
+
+        {/* PAGE 3 — Programme du séjour */}
+        {programmeLines.length > 0 && (
+          <Page size="A4" style={pdfStyles.page}>
+            <View style={pdfStyles.letterhead}>
+              {logoUrl ? <PdfImage src={logoUrl} style={{ width: 110, objectFit: "contain" }} /> : <Text style={pdfStyles.brand}>Scolamove</Text>}
+              <Text style={pdfStyles.coords}>Devis {refVal}</Text>
+            </View>
+
+            <Text style={pdfStyles.sectionTitle}>Programme du séjour</Text>
+            <View style={pdfStyles.programmeText}>
+              {programmeLines.map((line, i) => (
+                <Text key={i} style={{ marginBottom: line.trim() === "" ? 4 : 1 }}>
+                  {line}
+                </Text>
+              ))}
+            </View>
+
+            <Text style={pdfStyles.legalFooter}>
+              Scolamove — Agence de voyages scolaires · Ce document est une estimation non contractuelle établie à titre indicatif.
+            </Text>
+          </Page>
+        )}
       </Document>
     );
   }
@@ -804,6 +831,7 @@ export default function DevisExpressPage() {
       chambreIndivCheck,
       chambreIndivMontant,
       etablissement,
+      dossierSuiviPar,
       ville,
       reference,
       dateVoyage,
@@ -870,6 +898,7 @@ export default function DevisExpressPage() {
     setChambreIndivCheck(d.chambreIndivCheck);
     setChambreIndivMontant(d.chambreIndivMontant);
     setEtablissement(d.etablissement);
+    setDossierSuiviPar(d.dossierSuiviPar || "");
     setVille(d.ville);
     setReference(d.reference);
     setDateVoyage(d.dateVoyage);
@@ -891,17 +920,67 @@ export default function DevisExpressPage() {
 
   function handleNewDevis() {
     setLoadedId(null);
-    setReference(genRef());
+    setZone("");
+    setJours(0);
+    setNuits(0);
+    setEleves(0);
+    setAccomp(0);
+    setConfort("1");
+    setVisites(0);
+    setMarge(0);
+    setSousTraite(false);
+    setMargeTransport(0);
+    setRatios(emptyRatios);
+    setAssuranceCheck(false);
+    setAssurancePct(0);
+    setAssuranceMin(0);
+    setTaxeSejourCheck(false);
+    setTaxeSejourMontant(0);
+    setCautionCheck(false);
+    setCautionMontant(0);
+    setChambreIndivCheck(false);
+    setChambreIndivMontant(0);
     setEtablissement("");
+    setDossierSuiviPar("");
     setVille("");
+    setReference("");
     setDateVoyage("");
     setProgramme("");
-    setSaveStatus("Nouveau devis — champs réinitialisés.");
+    setPrixParVisite(0);
+    setSelectedSejourId("");
+    setSaveStatus("Nouveau devis — tous les champs sont vides.");
     setTimeout(() => setSaveStatus(""), 2500);
   }
 
+  async function loadLogoAsPngDataUrl(): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const img = document.createElement("img");
+      img.crossOrigin = "anonymous";
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        canvas.width = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          reject(new Error("Impossible d'obtenir le contexte canvas"));
+          return;
+        }
+        ctx.drawImage(img, 0, 0);
+        resolve(canvas.toDataURL("image/png"));
+      };
+      img.onerror = () => reject(new Error("Échec du chargement du logo"));
+      img.src = "/images/logo-scolamove.png";
+    });
+  }
+
   async function handleDownload() {
-    const blob = await pdf(<DevisPdfDocument />).toBlob();
+    let logoDataUrl = "";
+    try {
+      logoDataUrl = await loadLogoAsPngDataUrl();
+    } catch {
+      logoDataUrl = "";
+    }
+    const blob = await pdf(<DevisPdfDocument logoDataUrl={logoDataUrl} />).toBlob();
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -914,7 +993,7 @@ export default function DevisExpressPage() {
 
 
   async function handleCopyEmail() {
-    const zoneLabel = ZONES[zone].label;
+    const zoneLabel = zone ? ZONES[zone].label : "Destination non renseignée";
     const texte = `Bonjour,
 
 Suite à votre demande, voici notre proposition pour votre projet de voyage scolaire :
@@ -1386,12 +1465,16 @@ Jérémy — Scolamove`;
               <input value={etablissement} onChange={(e) => setEtablissement(e.target.value)} placeholder="Collège / Lycée..." />
             </label>
             <label>
+              Dossier suivi par
+              <input value={dossierSuiviPar} onChange={(e) => setDossierSuiviPar(e.target.value)} placeholder="Nom du responsable du dossier" />
+            </label>
+            <label>
               Ville
               <input value={ville} onChange={(e) => setVille(e.target.value)} placeholder="Ville de l'établissement" />
             </label>
             <label>
               Référence
-              <input value={reference} onChange={(e) => setReference(e.target.value)} />
+              <input value={reference} onChange={(e) => setReference(e.target.value)} placeholder="Générée automatiquement si vide" />
             </label>
             <label>
               Période du voyage
@@ -1412,7 +1495,8 @@ Jérémy — Scolamove`;
           <div className="admin-form-grid two">
             <label>
               Destination / zone
-              <select value={zone} onChange={(e) => setZone(e.target.value as ZoneKey)}>
+              <select value={zone} onChange={(e) => setZone(e.target.value as ZoneKey | "")}>
+                <option value="">— Choisir —</option>
                 {Object.entries(ZONES).map(([key, z]) => (
                   <option key={key} value={key}>
                     {z.label}
