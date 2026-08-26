@@ -111,6 +111,18 @@ type SavedDevisRow = {
   data: SavedDevisData;
 };
 
+type CatalogueSejour = {
+  id: string;
+  slug: string;
+  title: string;
+  destination: string;
+  country: string;
+  duration: string;
+  visit_budget: string | null;
+  program: { day: string; title: string; text: string }[];
+  hidden: boolean;
+};
+
 export default function DevisExpressPage() {
   const [isLogged, setIsLogged] = useState(false);
 
@@ -197,6 +209,62 @@ export default function DevisExpressPage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLogged]);
+
+  // --- Catalogue de séjours existants (source : table sejours, remplie via /admin) ---
+  const [catalogueSejours, setCatalogueSejours] = useState<CatalogueSejour[]>([]);
+  const [loadingCatalogue, setLoadingCatalogue] = useState(false);
+  const [selectedSejourId, setSelectedSejourId] = useState("");
+  const [sejourImportMsg, setSejourImportMsg] = useState("");
+
+  useEffect(() => {
+    if (!isLogged) return;
+    (async () => {
+      setLoadingCatalogue(true);
+      const { data, error } = await supabase
+        .from("sejours")
+        .select("id, slug, title, destination, country, duration, visit_budget, program, hidden")
+        .order("title", { ascending: true });
+      if (!error && data) {
+        setCatalogueSejours(data as CatalogueSejour[]);
+      } else if (error) {
+        console.error("Erreur Supabase (select sejours):", error);
+      }
+      setLoadingCatalogue(false);
+    })();
+  }, [isLogged]);
+
+  function handleImportFromSejour(sejourId: string) {
+    setSelectedSejourId(sejourId);
+    if (!sejourId) return;
+    const s = catalogueSejours.find((x) => x.id === sejourId);
+    if (!s) return;
+
+    // Programme : reconstruit proprement au format "JOUR X : titre" à partir des vraies
+    // données du site, sans passer par l'OCR.
+    const programmeText = (s.program || [])
+      .map((p) => `${p.day || ""}${p.title ? ` : ${p.title}` : ""}\n${p.text || ""}`.trim())
+      .join("\n\n");
+    setProgramme(programmeText);
+
+    // Durée : essaie d'extraire "X jours / Y nuits" depuis le texte du site.
+    const mJ = (s.duration || "").match(/(\d+)\s*jour/i);
+    const mN = (s.duration || "").match(/(\d+)\s*nuit/i);
+    if (mJ) setJours(Number(mJ[1]));
+    if (mN) setNuits(Number(mN[1]));
+
+    // Budget visites : "Environ 49€ par personne" → applique au champ visites/jour.
+    const mB = (s.visit_budget || "").match(/(\d+[.,]?\d*)\s*€/);
+    if (mB) {
+      const budgetDetecte = parseFloat(mB[1].replace(",", "."));
+      const jP = Math.max((mN ? Number(mN[1]) : nuits) + 1, 1);
+      setVisites(Number((budgetDetecte / jP).toFixed(2)));
+    }
+
+    setSejourImportMsg(
+      `Programme importé depuis "${s.title}" (${s.program?.length || 0} jour(s), donnée officielle du site — pas d'OCR).`
+    );
+    setTimeout(() => setSejourImportMsg(""), 4000);
+  }
 
   const result = useMemo(() => {
     const pax = eleves + accomp;
@@ -1477,10 +1545,32 @@ Jérémy — Scolamove`;
               <h2>Programme du séjour</h2>
             </div>
           </div>
+
           <label>
-            Colle ici le programme jour par jour (JOUR 1, JOUR 2...)
-            <textarea rows={8} value={programme} onChange={(e) => setProgramme(e.target.value)} placeholder={"JOUR 1 : Départ...\nJOUR 2 : Visite du site archéologique..."} />
+            Importer depuis un séjour existant du site (recommandé — donnée officielle, pas d&apos;OCR)
+            <select
+              value={selectedSejourId}
+              onChange={(e) => handleImportFromSejour(e.target.value)}
+              disabled={loadingCatalogue}
+            >
+              <option value="">
+                {loadingCatalogue ? "Chargement des séjours..." : "— Choisir un séjour —"}
+              </option>
+              {catalogueSejours.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.title} — {s.destination} ({s.duration}){s.hidden ? " [masqué]" : ""}
+                </option>
+              ))}
+            </select>
           </label>
+          {sejourImportMsg && <p className="de-estimate-msg">{sejourImportMsg}</p>}
+
+          <div style={{ marginTop: 16, paddingTop: 16, borderTop: "1px dashed var(--line)" }}>
+            <label>
+              Ou colle le programme jour par jour à la main (JOUR 1, JOUR 2...)
+              <textarea rows={8} value={programme} onChange={(e) => setProgramme(e.target.value)} placeholder={"JOUR 1 : Départ...\nJOUR 2 : Visite du site archéologique..."} />
+            </label>
+          </div>
           <div className="admin-form-grid two" style={{ marginTop: 8 }}>
             <label>
               Prix moyen estimé par visite détectée (€)
