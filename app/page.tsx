@@ -125,8 +125,8 @@ export default function Home() {
                 Scolamove centralise l’organisation pour alléger la charge des enseignants.
               </p>
             </div>
-            <a href="#devis" className="btn btn-yellow">
-              Être rappelé
+            <a href="/devis" className="btn btn-yellow">
+              Demander un devis
             </a>
           </div>
         </section>
