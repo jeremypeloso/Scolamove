@@ -93,6 +93,8 @@ type SavedDevisData = {
   chambreIndivMontant: number;
   etablissement: string;
   dossierSuiviPar: string;
+  teacherName: string;
+  teacherEmail: string;
   ville: string;
   reference: string;
   dateVoyage: string;
@@ -169,6 +171,8 @@ export default function DevisExpressPage() {
   // --- Identification devis ---
   const [etablissement, setEtablissement] = useState("");
   const [dossierSuiviPar, setDossierSuiviPar] = useState("");
+  const [teacherName, setTeacherName] = useState("");
+  const [teacherEmail, setTeacherEmail] = useState("");
   const [ville, setVille] = useState("");
   const [reference, setReference] = useState("");
   const [dateVoyage, setDateVoyage] = useState("");
@@ -838,12 +842,71 @@ export default function DevisExpressPage() {
       chambreIndivMontant,
       etablissement,
       dossierSuiviPar,
+      teacherName,
+      teacherEmail,
       ville,
       reference,
       dateVoyage,
       programme,
       prixParVisite,
     };
+  }
+
+  async function syncTeacherProject(refVal: string) {
+    if (!teacherEmail.trim()) return; // pas d'email = pas de dossier enseignant possible
+
+    const zoneLabel = zone ? ZONES[zone].label : "Voyage scolaire";
+    const { data: projectRow, error: projectError } = await supabase
+      .from("teacher_projects")
+      .upsert(
+        {
+          access_code: refVal,
+          sejour_title: zoneLabel,
+          school_name: etablissement || "Établissement non renseigné",
+          school_city: ville || null,
+          teacher_name: teacherName || "Non renseigné",
+          teacher_email: teacherEmail.trim(),
+          teacher_phone: null,
+          level: null,
+          student_target: eleves || null,
+          budget_target: `${result.prixFerme.toFixed(2)} € / pers`,
+          status: "Devis envoyé",
+          notes: dossierSuiviPar ? `Dossier suivi par ${dossierSuiviPar} (Scolamove).` : null,
+        },
+        { onConflict: "access_code" }
+      )
+      .select("id")
+      .single();
+
+    if (projectError || !projectRow) {
+      console.error("Erreur Supabase (upsert teacher_projects):", projectError);
+      return;
+    }
+
+    // Dépose le PDF du devis comme document du projet, remplace l'ancien s'il existe déjà
+    try {
+      const logoDataUrl = await loadLogoAsPngDataUrl().catch(() => "");
+      const blob = await pdf(<DevisPdfDocument logoDataUrl={logoDataUrl} refOverride={refVal} />).toBlob();
+      const filePath = `${refVal}/devis.pdf`;
+      const { error: uploadError } = await supabase.storage
+        .from("project-documents")
+        .upload(filePath, blob, { upsert: true, contentType: "application/pdf" });
+
+      if (!uploadError) {
+        const { data: publicUrlData } = supabase.storage.from("project-documents").getPublicUrl(filePath);
+        await supabase.from("project_documents").delete().eq("project_id", projectRow.id).eq("title", "Devis");
+        await supabase.from("project_documents").insert({
+          project_id: projectRow.id,
+          title: "Devis",
+          category: "Devis",
+          file_url: publicUrlData.publicUrl,
+        });
+      } else {
+        console.error("Erreur Supabase (upload devis PDF):", uploadError);
+      }
+    } catch (e) {
+      console.error("Erreur génération/dépôt du PDF pour l'espace enseignant:", e);
+    }
   }
 
   async function handleSaveDevis() {
@@ -867,7 +930,6 @@ export default function DevisExpressPage() {
         setSaveStatus(`Erreur : ${error.message || error.code || "voir console"}`);
         return;
       }
-      setSaveStatus("Devis mis à jour ✓");
     } else {
       const { data, error } = await supabase.from("devis_express").insert(payload).select("id").single();
       if (error) {
@@ -876,10 +938,18 @@ export default function DevisExpressPage() {
         return;
       }
       setLoadedId(data.id);
-      setSaveStatus("Devis enregistré ✓");
     }
+
+    if (teacherEmail.trim()) {
+      setSaveStatus("Devis enregistré — synchronisation avec l'espace enseignant...");
+      await syncTeacherProject(refVal);
+      setSaveStatus("Devis enregistré et disponible dans l'espace enseignant ✓");
+    } else {
+      setSaveStatus("Devis enregistré ✓ (renseigne l'email du professeur pour qu'il le retrouve dans son espace)");
+    }
+
     await fetchSavedDevis();
-    setTimeout(() => setSaveStatus(""), 5000);
+    setTimeout(() => setSaveStatus(""), 6000);
   }
 
   function handleLoadDevis(row: SavedDevisRow) {
@@ -906,6 +976,8 @@ export default function DevisExpressPage() {
     setChambreIndivMontant(d.chambreIndivMontant);
     setEtablissement(d.etablissement);
     setDossierSuiviPar(d.dossierSuiviPar || "");
+    setTeacherName(d.teacherName || "");
+    setTeacherEmail(d.teacherEmail || "");
     setVille(d.ville);
     setReference(d.reference);
     setDateVoyage(d.dateVoyage);
@@ -949,6 +1021,8 @@ export default function DevisExpressPage() {
     setChambreIndivMontant(25);
     setEtablissement("");
     setDossierSuiviPar("");
+    setTeacherName("");
+    setTeacherEmail("");
     setVille("");
     setReference(genRef());
     setDateVoyage("");
@@ -1481,6 +1555,14 @@ Jérémy — Scolamove`;
             <label>
               Ville
               <input value={ville} onChange={(e) => setVille(e.target.value)} placeholder="Ville de l'établissement" />
+            </label>
+            <label>
+              Personne responsable (enseignant)
+              <input value={teacherName} onChange={(e) => setTeacherName(e.target.value)} placeholder="Nom du professeur demandeur" />
+            </label>
+            <label>
+              Adresse email <span style={{ fontWeight: 400, color: "#e8683a" }}>(nécessaire pour l&apos;espace enseignant)</span>
+              <input type="email" value={teacherEmail} onChange={(e) => setTeacherEmail(e.target.value)} placeholder="professeur@etablissement.fr" />
             </label>
             <label>
               Référence

@@ -45,6 +45,15 @@ type ParticipantDocument = {
   file_url: string | null;
 };
 
+type ProjectDocument = {
+  id: string;
+  project_id: string;
+  title: string;
+  category: string;
+  file_url: string;
+  created_at: string;
+};
+
 type ParticipantPayment = {
   id: string;
   participant_id: string;
@@ -94,6 +103,7 @@ export default function TeacherProjectPage() {
   const [participantPayments, setParticipantPayments] = useState<
     ParticipantPayment[]
   >([]);
+  const [projectDocuments, setProjectDocuments] = useState<ProjectDocument[]>([]);
   const [selectedParticipantId, setSelectedParticipantId] = useState("");
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState("");
@@ -136,7 +146,18 @@ export default function TeacherProjectPage() {
       loadParticipants(projectId),
       loadParticipantDocuments(projectId),
       loadParticipantPayments(projectId),
+      loadProjectDocuments(projectId),
     ]);
+  }
+
+  async function loadProjectDocuments(projectId: string) {
+    const { data } = await supabase
+      .from("project_documents")
+      .select("*")
+      .eq("project_id", projectId)
+      .order("created_at", { ascending: false });
+
+    setProjectDocuments((data || []) as ProjectDocument[]);
   }
 
   async function loadParticipants(projectId: string) {
@@ -472,6 +493,34 @@ export default function TeacherProjectPage() {
               {totalPaid} € / {totalDue} €
             </strong>
           </article>
+        </section>
+
+        <section className="teacher-project-card teacher-docs-card">
+          <h2>📄 Mes documents</h2>
+          {projectDocuments.length === 0 ? (
+            <p className="teacher-docs-empty">
+              Aucun document disponible pour l&apos;instant. Ton devis apparaîtra ici dès qu&apos;il
+              aura été établi par Scolamove.
+            </p>
+          ) : (
+            <div className="teacher-docs-grid">
+              {projectDocuments.map((doc) => (
+                <a
+                  key={doc.id}
+                  href={doc.file_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="teacher-doc-tile"
+                >
+                  <span className="teacher-doc-icon">
+                    {doc.category === "Devis" ? "💶" : "📎"}
+                  </span>
+                  <span className="teacher-doc-title">{doc.title}</span>
+                  <span className="teacher-doc-download">Télécharger ↓</span>
+                </a>
+              ))}
+            </div>
+          )}
         </section>
 
         <section className="teacher-project-card">

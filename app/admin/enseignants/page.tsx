@@ -32,6 +32,15 @@ type TeacherProject = {
   updated_at: string;
 };
 
+type ProjectDocument = {
+  id: string;
+  project_id: string;
+  title: string;
+  category: string;
+  file_url: string;
+  created_at: string;
+};
+
 function generateAccessCode() {
   const digits = Math.floor(100000 + Math.random() * 900000);
   return `SCOLA-${digits}`;
@@ -81,6 +90,9 @@ export default function AdminTeacherProjectsPage() {
   const [selectedProjectId, setSelectedProjectId] = useState("");
   const [form, setForm] = useState(emptyForm());
   const [saveStatus, setSaveStatus] = useState("");
+  const [projectDocuments, setProjectDocuments] = useState<ProjectDocument[]>([]);
+  const [docTitle, setDocTitle] = useState("");
+  const [uploadingDoc, setUploadingDoc] = useState(false);
 
   useEffect(() => {
     loadSejours();
@@ -125,8 +137,77 @@ export default function AdminTeacherProjectsPage() {
     if (selectedProject) {
       setForm(formFromProject(selectedProject));
       setSaveStatus("");
+      loadProjectDocuments(selectedProject.id);
+    } else {
+      setProjectDocuments([]);
     }
   }, [selectedProject]);
+
+  async function loadProjectDocuments(projectId: string) {
+    const { data, error } = await supabase
+      .from("project_documents")
+      .select("*")
+      .eq("project_id", projectId)
+      .order("created_at", { ascending: false });
+
+    if (!error && data) {
+      setProjectDocuments(data as ProjectDocument[]);
+    }
+  }
+
+  async function uploadProjectDocument(file: File) {
+    if (!selectedProject) return;
+    if (!docTitle.trim()) {
+      setSaveStatus("Donne un titre au document avant de l'importer.");
+      return;
+    }
+    setUploadingDoc(true);
+    const extension = file.name.split(".").pop() || "pdf";
+    const filePath = `${selectedProject.access_code}/${Date.now()}-${docTitle.trim().replace(/[^a-zA-Z0-9-_]+/g, "-")}.${extension}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from("project-documents")
+      .upload(filePath, file, { upsert: true });
+
+    if (uploadError) {
+      setSaveStatus(`Erreur upload : ${uploadError.message}`);
+      setUploadingDoc(false);
+      return;
+    }
+
+    const { data: publicUrlData } = supabase.storage.from("project-documents").getPublicUrl(filePath);
+
+    const { error: insertError } = await supabase.from("project_documents").insert({
+      project_id: selectedProject.id,
+      title: docTitle.trim(),
+      category: "Document",
+      file_url: publicUrlData.publicUrl,
+    });
+
+    setUploadingDoc(false);
+
+    if (insertError) {
+      setSaveStatus(`Erreur : ${insertError.message}`);
+      return;
+    }
+
+    setDocTitle("");
+    setSaveStatus("Document ajouté au dossier enseignant ✓");
+    await loadProjectDocuments(selectedProject.id);
+  }
+
+  async function deleteProjectDocument(docId: string) {
+    if (!selectedProject) return;
+    const confirmed = window.confirm("Supprimer ce document ?");
+    if (!confirmed) return;
+
+    const { error } = await supabase.from("project_documents").delete().eq("id", docId);
+    if (error) {
+      setSaveStatus(`Erreur : ${error.message}`);
+      return;
+    }
+    await loadProjectDocuments(selectedProject.id);
+  }
 
   function updateForm(field: string, value: string) {
     setForm({
@@ -512,6 +593,65 @@ export default function AdminTeacherProjectsPage() {
                     {selectedProject.access_code}
                   </strong>
                 </p>
+              </div>
+            )}
+
+            {selectedProject && (
+              <div className="admin-panel">
+                <h2>Documents du dossier</h2>
+                <p>
+                  Ces fichiers apparaissent directement dans l&apos;espace enseignant du projet.
+                  Le devis (s&apos;il a été enregistré depuis Devis Express) y figure automatiquement.
+                </p>
+
+                {projectDocuments.length === 0 ? (
+                  <p style={{ fontSize: 13, color: "#6b7268" }}>Aucun document déposé pour l&apos;instant.</p>
+                ) : (
+                  <div style={{ display: "grid", gap: 8, marginBottom: 14 }}>
+                    {projectDocuments.map((doc) => (
+                      <div
+                        key={doc.id}
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          padding: "8px 12px",
+                          border: "1px solid #dce8f5",
+                          borderRadius: 8,
+                        }}
+                      >
+                        <a href={doc.file_url} target="_blank" rel="noreferrer">
+                          {doc.category === "Devis" ? "💶" : "📎"} {doc.title}
+                        </a>
+                        <button
+                          type="button"
+                          className="admin-secondary-button"
+                          onClick={() => deleteProjectDocument(doc.id)}
+                        >
+                          Supprimer
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <label>
+                  Titre du document
+                  <input
+                    value={docTitle}
+                    onChange={(event) => setDocTitle(event.target.value)}
+                    placeholder="Ex : Contrat de réservation"
+                  />
+                </label>
+                <input
+                  type="file"
+                  disabled={uploadingDoc}
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    if (file) uploadProjectDocument(file);
+                  }}
+                />
+                {uploadingDoc && <p style={{ fontSize: 12.5, color: "#6b7268" }}>Envoi en cours...</p>}
               </div>
             )}
 
