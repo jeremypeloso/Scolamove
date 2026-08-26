@@ -5506,3 +5506,135 @@ main > form:first-of-type {
     margin: 0 !important;
   }
 }
+
+/* Page Qui sommes-nous — mise en page dense */
+.about-hero {
+  background: linear-gradient(135deg, var(--navy), #0d4f72);
+  color: white;
+  padding: 48px 6% 40px;
+}
+
+.about-hero span {
+  color: var(--yellow);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 12px;
+}
+
+.about-hero h1 {
+  max-width: 780px;
+  margin: 10px 0 8px;
+  font-size: 30px;
+  line-height: 1.25;
+}
+
+.about-hero p {
+  max-width: 680px;
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 15px;
+  margin: 0;
+}
+
+.about-content {
+  padding: 36px 6% 20px;
+  max-width: 780px;
+  margin: 0 auto;
+}
+
+.about-content p {
+  font-size: 15px;
+  line-height: 1.55;
+  color: #2b3a42;
+  margin: 0 0 14px;
+}
+
+.about-content h2 {
+  font-size: 19px;
+  color: var(--navy);
+  margin: 30px 0 10px;
+}
+
+.about-content h2:first-child {
+  margin-top: 0;
+}
+
+.about-licences {
+  padding: 8px 6% 20px;
+  max-width: 780px;
+  margin: 0 auto;
+}
+
+.about-licences h2 {
+  font-size: 19px;
+  color: var(--navy);
+  margin: 0 0 14px;
+}
+
+.about-licences-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px 24px;
+  border: 1px solid #e6edf5;
+  border-radius: 14px;
+  padding: 6px 18px;
+  background: #fbfdff;
+}
+
+.about-licences-grid dt {
+  font-size: 12.5px;
+  color: var(--muted);
+  padding-top: 12px;
+}
+
+.about-licences-grid dd {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--navy);
+  margin: 0 0 12px;
+}
+
+.about-fleet {
+  padding: 8px 6% 30px;
+  max-width: 780px;
+  margin: 0 auto;
+}
+
+.about-fleet h2 {
+  font-size: 19px;
+  color: var(--navy);
+  margin: 0 0 12px;
+}
+
+.about-fleet-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.about-fleet-tags span {
+  background: #eef5ff;
+  color: var(--navy);
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 999px;
+}
+
+.about-cta {
+  padding: 24px 6% 56px;
+  max-width: 780px;
+  margin: 0 auto;
+  text-align: left;
+}
+
+@media (max-width: 700px) {
+  .about-hero h1 {
+    font-size: 24px;
+  }
+
+  .about-licences-grid {
+    grid-template-columns: 1fr;
+  }
+}
