@@ -653,7 +653,7 @@ export default function DevisExpressPage() {
         <Page size="A4" style={pdfStyles.page}>
           <View style={pdfStyles.letterhead}>
             <Text style={pdfStyles.brand}>Scolamove</Text>
-            <Text style={pdfStyles.coords}>Scolamove — Agence de voyages scolaires{"\n"}voyages@scolamove.fr</Text>
+            <Text style={pdfStyles.coords}>Scolamove — Agence de voyages scolaires{"\n"}contact@scolamove.fr</Text>
           </View>
 
           <View style={pdfStyles.addrBlock}>
