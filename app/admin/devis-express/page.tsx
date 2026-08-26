@@ -614,9 +614,9 @@ export default function DevisExpressPage() {
     },
   });
 
-  function DevisPdfDocument({ logoDataUrl }: { logoDataUrl: string }) {
+  function DevisPdfDocument({ logoDataUrl, refOverride }: { logoDataUrl: string; refOverride?: string }) {
     const zoneLabel = zone ? ZONES[zone].label : "Destination non renseignée";
-    const refVal = reference || genRef();
+    const refVal = refOverride || reference || genRef();
     const dateStr = new Date().toLocaleDateString("fr-FR");
     const etabStr = [etablissement, ville].filter(Boolean).join(" — ") || "Établissement scolaire";
     const periodeStr = dateVoyage || `${jours} jours / ${nuits} nuits (dates à préciser)`;
@@ -842,14 +842,16 @@ export default function DevisExpressPage() {
 
   async function handleSaveDevis() {
     setSaveStatus("Enregistrement...");
+    const refVal = reference || genRef();
+    if (!reference) setReference(refVal);
     const payload = {
-      reference: reference || genRef(),
+      reference: refVal,
       etablissement: etablissement || null,
       ville: ville || null,
       zone,
       prix_ferme: result.prixFerme,
       pax: result.pax,
-      data: buildSavedData(),
+      data: { ...buildSavedData(), reference: refVal },
       updated_at: new Date().toISOString(),
     };
 
@@ -980,11 +982,15 @@ export default function DevisExpressPage() {
     } catch {
       logoDataUrl = "";
     }
-    const blob = await pdf(<DevisPdfDocument logoDataUrl={logoDataUrl} />).toBlob();
+    // Une seule référence générée pour tout le document : évite qu'un devis sans référence
+    // saisie se retrouve avec un nom de fichier différent de la référence écrite dedans.
+    const refVal = reference || genRef();
+    if (!reference) setReference(refVal);
+    const blob = await pdf(<DevisPdfDocument logoDataUrl={logoDataUrl} refOverride={refVal} />).toBlob();
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `devis-${reference || genRef()}.pdf`;
+    a.download = `devis-${refVal}.pdf`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -1725,11 +1731,11 @@ Jérémy — Scolamove`;
             {result.prixFerme.toFixed(0)} € <small>/ personne</small>
           </div>
           <div className="de-result-grid">
-            <div className="row"><span>Transport {sousTraite ? "(sous-traité)" : "(flotte Festimove)"}</span><span>{result.transportWithMarge.toFixed(0)} €</span></div>
-            <div className="row"><span>Hébergement ({nuits} nuits)</span><span>{result.hebergTotal.toFixed(0)} €</span></div>
-            <div className="row"><span>Pension complète ({jours} jours)</span><span>{result.repasTotal.toFixed(0)} €</span></div>
-            <div className="row"><span>Visites / activités</span><span>{result.visitesTotal.toFixed(0)} €</span></div>
-            <div className="row"><span>Assistance / gestion</span><span>{result.assistTotal.toFixed(0)} €</span></div>
+            <div className="row"><span>Transport {sousTraite ? "(sous-traité)" : "(flotte Festimove)"}, marge {result.transportMargePct}%</span><span>{result.transportWithMarge.toFixed(2)} €</span></div>
+            <div className="row"><span>Hébergement ({nuits} nuits), marge {marge}%</span><span>{(result.hebergTotal * (1 + marge / 100)).toFixed(2)} €</span></div>
+            <div className="row"><span>Pension complète ({jours} jours), marge {marge}%</span><span>{(result.repasTotal * (1 + marge / 100)).toFixed(2)} €</span></div>
+            <div className="row"><span>Visites / activités, marge {marge}%</span><span>{(result.visitesTotal * (1 + marge / 100)).toFixed(2)} €</span></div>
+            <div className="row"><span>Assistance / gestion, marge {marge}%</span><span>{(result.assistTotal * (1 + marge / 100)).toFixed(2)} €</span></div>
             {assuranceCheck && <div className="row"><span>+ Assurance annulation</span><span>{result.assuranceMontant.toFixed(2)} €</span></div>}
             {taxeSejourCheck && <div className="row"><span>+ Taxe de séjour</span><span>{result.taxeSejourTotal.toFixed(2)} €</span></div>}
             {cautionCheck && <div className="row italic"><span>Caution hôtel (non incluse)</span><span>{cautionMontant.toFixed(2)} €</span></div>}
