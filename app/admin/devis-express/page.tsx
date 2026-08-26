@@ -142,11 +142,11 @@ export default function DevisExpressPage() {
   // --- Niveau & marge ---
   const [confort, setConfort] = useState<"0.85" | "1" | "1.25">("1");
   const [visites, setVisites] = useState(0);
-  const [marge, setMarge] = useState(0);
+  const [marge, setMarge] = useState(5);
 
   // --- Transport ---
   const [sousTraite, setSousTraite] = useState(false);
-  const [margeTransport, setMargeTransport] = useState(0);
+  const [margeTransport, setMargeTransport] = useState(20);
 
   // --- Ratios ajustables (seedés par zone) ---
   const emptyRatios: ZoneRatios = { t: 0, h: 0, r: 0, a: 0 };
@@ -158,14 +158,14 @@ export default function DevisExpressPage() {
 
   // --- Options tarifaires ---
   const [assuranceCheck, setAssuranceCheck] = useState(false);
-  const [assurancePct, setAssurancePct] = useState(0);
-  const [assuranceMin, setAssuranceMin] = useState(0);
+  const [assurancePct, setAssurancePct] = useState(2.5);
+  const [assuranceMin, setAssuranceMin] = useState(6);
   const [taxeSejourCheck, setTaxeSejourCheck] = useState(false);
-  const [taxeSejourMontant, setTaxeSejourMontant] = useState(0);
+  const [taxeSejourMontant, setTaxeSejourMontant] = useState(1.5);
   const [cautionCheck, setCautionCheck] = useState(false);
-  const [cautionMontant, setCautionMontant] = useState(0);
+  const [cautionMontant, setCautionMontant] = useState(10);
   const [chambreIndivCheck, setChambreIndivCheck] = useState(false);
-  const [chambreIndivMontant, setChambreIndivMontant] = useState(0);
+  const [chambreIndivMontant, setChambreIndivMontant] = useState(25);
 
   // --- Identification devis ---
   const [etablissement, setEtablissement] = useState("");
@@ -176,7 +176,7 @@ export default function DevisExpressPage() {
 
   // --- Programme & OCR ---
   const [programme, setProgramme] = useState("");
-  const [prixParVisite, setPrixParVisite] = useState(0);
+  const [prixParVisite, setPrixParVisite] = useState(6);
   const [estimateMsg, setEstimateMsg] = useState<string | null>(null);
   const [ocrStatus, setOcrStatus] = useState("");
   const [ocrRawText, setOcrRawText] = useState("");
@@ -927,28 +927,28 @@ export default function DevisExpressPage() {
     setAccomp(0);
     setConfort("1");
     setVisites(0);
-    setMarge(0);
+    setMarge(5);
     setSousTraite(false);
-    setMargeTransport(0);
+    setMargeTransport(20);
     setRatios(emptyRatios);
     setAssuranceCheck(false);
-    setAssurancePct(0);
-    setAssuranceMin(0);
+    setAssurancePct(2.5);
+    setAssuranceMin(6);
     setTaxeSejourCheck(false);
-    setTaxeSejourMontant(0);
+    setTaxeSejourMontant(1.5);
     setCautionCheck(false);
-    setCautionMontant(0);
+    setCautionMontant(10);
     setChambreIndivCheck(false);
-    setChambreIndivMontant(0);
+    setChambreIndivMontant(25);
     setEtablissement("");
     setDossierSuiviPar("");
     setVille("");
     setReference("");
     setDateVoyage("");
     setProgramme("");
-    setPrixParVisite(0);
+    setPrixParVisite(6);
     setSelectedSejourId("");
-    setSaveStatus("Nouveau devis — tous les champs sont vides.");
+    setSaveStatus("Nouveau devis — champs propres au voyage réinitialisés (marges conservées).");
     setTimeout(() => setSaveStatus(""), 2500);
   }
 
