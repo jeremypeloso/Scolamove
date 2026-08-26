@@ -100,6 +100,7 @@ type SavedDevisData = {
   dateVoyage: string;
   programme: string;
   prixParVisite: number;
+  selectedSejourId: string;
 };
 
 type SavedDevisRow = {
@@ -849,6 +850,7 @@ export default function DevisExpressPage() {
       dateVoyage,
       programme,
       prixParVisite,
+      selectedSejourId,
     };
   }
 
@@ -983,7 +985,7 @@ export default function DevisExpressPage() {
     setDateVoyage(d.dateVoyage);
     setProgramme(d.programme);
     setPrixParVisite(d.prixParVisite);
-    setSelectedSejourId(""); // le sélecteur "séjour du site" ne doit pas garder l'ancien choix
+    setSelectedSejourId(d.selectedSejourId || ""); // restaure le séjour lié à CE devis précisément
     setLoadedId(row.id);
     setSaveStatus(`Devis "${row.reference}" chargé ✓`);
     setTimeout(() => setSaveStatus(""), 2500);
