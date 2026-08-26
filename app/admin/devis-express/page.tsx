@@ -306,13 +306,15 @@ export default function DevisExpressPage() {
     metaRow: { flexDirection: "row", borderBottomWidth: 1, borderBottomColor: "#e2ddd0" },
     metaLabel: {
       width: "22%",
+      flexGrow: 0,
+      flexShrink: 0,
       backgroundColor: "#faf7f0",
       fontFamily: "Helvetica-Bold",
       color: "#3d5a45",
       fontSize: 9,
       padding: 6,
     },
-    metaValue: { flex: 1, fontSize: 9.5, padding: 6 },
+    metaValue: { flexGrow: 1, flexShrink: 1, fontSize: 9.5, padding: 6 },
     programmeBlock: { marginVertical: 16 },
     programmeText: {
       fontSize: 9.5,
@@ -335,10 +337,11 @@ export default function DevisExpressPage() {
     },
     offerTable: { borderWidth: 1, borderColor: "#e2ddd0", marginBottom: 6 },
     offerHeadRow: { flexDirection: "row", backgroundColor: "#3d5a45" },
-    offerHeadCell: { flex: 1, color: "#fff", fontFamily: "Helvetica-Bold", fontSize: 9.5, padding: 7 },
+    offerHeadCell: { flexGrow: 1, flexShrink: 1, color: "#fff", fontFamily: "Helvetica-Bold", fontSize: 9.5, padding: 7 },
+    offerHeadValueCell: { flexGrow: 0, flexShrink: 0, width: 90, color: "#fff", fontFamily: "Helvetica-Bold", fontSize: 9.5, padding: 7, textAlign: "right" },
     offerRow: { flexDirection: "row", borderTopWidth: 1, borderTopColor: "#e2ddd0" },
-    offerLabelCell: { flex: 1, fontSize: 9.5, padding: 7 },
-    offerValueCell: { width: 90, fontSize: 9.5, padding: 7, textAlign: "right", fontFamily: "Helvetica-Bold" },
+    offerLabelCell: { flexGrow: 1, flexShrink: 1, fontSize: 9.5, padding: 7 },
+    offerValueCell: { flexGrow: 0, flexShrink: 0, width: 90, fontSize: 9.5, padding: 7, textAlign: "right", fontFamily: "Helvetica-Bold" },
     totalBox: {
       backgroundColor: "#6fae2a",
       borderRadius: 8,
@@ -439,12 +442,10 @@ export default function DevisExpressPage() {
               <Text style={pdfStyles.metaLabel}>Destination</Text>
               <Text style={pdfStyles.metaValue}>{zoneLabel}</Text>
             </View>
-            <View style={[pdfStyles.metaRow, { borderBottomWidth: 0 }]}>
+            <View style={pdfStyles.metaRow}>
               <Text style={pdfStyles.metaLabel}>Effectif</Text>
               <Text style={pdfStyles.metaValue}>{eleves} élèves et {accomp} accompagnateurs</Text>
             </View>
-          </View>
-          <View style={[pdfStyles.metaTable, { marginTop: -12 }]}>
             <View style={[pdfStyles.metaRow, { borderBottomWidth: 0 }]}>
               <Text style={pdfStyles.metaLabel}>Période</Text>
               <Text style={pdfStyles.metaValue}>{periodeStr}</Text>
@@ -455,25 +456,12 @@ export default function DevisExpressPage() {
             Je reste à votre disposition pour l&apos;organisation de ce voyage et faire en sorte que votre projet puisse se concrétiser.
           </Text>
 
-          {programmeLines.length > 0 && (
-            <View style={pdfStyles.programmeBlock}>
-              <Text style={pdfStyles.sectionTitle}>Programme du séjour</Text>
-              <View style={pdfStyles.programmeText}>
-                {programmeLines.map((line, i) => (
-                  <Text key={i} style={{ marginBottom: line.trim() === "" ? 4 : 1 }}>
-                    {line}
-                  </Text>
-                ))}
-              </View>
-            </View>
-          )}
-
           <Text style={pdfStyles.offerTitle}>Devis {zoneLabel}</Text>
 
           <View style={pdfStyles.offerTable}>
             <View style={pdfStyles.offerHeadRow}>
               <Text style={pdfStyles.offerHeadCell}>Détail de l&apos;offre</Text>
-              <Text style={[pdfStyles.offerHeadCell, { flex: 0, width: 90, textAlign: "right" }]}>Montants</Text>
+              <Text style={pdfStyles.offerHeadValueCell}>Montants</Text>
             </View>
             <View style={pdfStyles.offerRow}>
               <Text style={pdfStyles.offerLabelCell}>Prix du séjour (voyage à forfait)</Text>
@@ -533,6 +521,19 @@ export default function DevisExpressPage() {
           <Text style={pdfStyles.listItem}>
             • Cette offre est une estimation et ne constitue pas un devis contractuel. Un devis détaillé et personnalisé sera établi dès validation de votre projet.
           </Text>
+
+          {programmeLines.length > 0 && (
+            <View style={pdfStyles.programmeBlock} break>
+              <Text style={pdfStyles.sectionTitle}>Programme du séjour</Text>
+              <View style={pdfStyles.programmeText}>
+                {programmeLines.map((line, i) => (
+                  <Text key={i} style={{ marginBottom: line.trim() === "" ? 4 : 1 }}>
+                    {line}
+                  </Text>
+                ))}
+              </View>
+            </View>
+          )}
 
           <View style={pdfStyles.signoff}>
             <Text>Bien cordialement,</Text>
