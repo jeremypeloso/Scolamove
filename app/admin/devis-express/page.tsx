@@ -177,6 +177,10 @@ export default function DevisExpressPage() {
       .limit(50);
     if (!error && data) {
       setSavedDevis(data as SavedDevisRow[]);
+    } else if (error) {
+      console.error("Erreur Supabase (select devis_express):", error);
+      setSaveStatus(`Erreur de chargement : ${error.message || error.code || "voir console"}`);
+      setTimeout(() => setSaveStatus(""), 5000);
     }
     setLoadingSaved(false);
   };
@@ -693,21 +697,23 @@ export default function DevisExpressPage() {
     if (loadedId) {
       const { error } = await supabase.from("devis_express").update(payload).eq("id", loadedId);
       if (error) {
-        setSaveStatus("Erreur lors de l'enregistrement.");
+        console.error("Erreur Supabase (update devis_express):", error);
+        setSaveStatus(`Erreur : ${error.message || error.code || "voir console"}`);
         return;
       }
       setSaveStatus("Devis mis à jour ✓");
     } else {
       const { data, error } = await supabase.from("devis_express").insert(payload).select("id").single();
       if (error) {
-        setSaveStatus("Erreur lors de l'enregistrement.");
+        console.error("Erreur Supabase (insert devis_express):", error);
+        setSaveStatus(`Erreur : ${error.message || error.code || "voir console"}`);
         return;
       }
       setLoadedId(data.id);
       setSaveStatus("Devis enregistré ✓");
     }
     await fetchSavedDevis();
-    setTimeout(() => setSaveStatus(""), 2500);
+    setTimeout(() => setSaveStatus(""), 5000);
   }
 
   function handleLoadDevis(row: SavedDevisRow) {
