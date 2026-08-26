@@ -60,7 +60,12 @@ declare global {
         file: File,
         lang: string,
         opts: { logger: (m: { status: string; progress: number }) => void }
-      ) => Promise<{ data: { text: string } }>;
+      ) => Promise<{
+        data: {
+          text: string;
+          words?: { text: string; bbox: { x0: number; y0: number; x1: number; y1: number } }[];
+        };
+      }>;
     };
   }
 }
@@ -320,12 +325,58 @@ export default function DevisExpressPage() {
         },
       });
       const text = data.text;
-      setOcrRawText(text);
+
+      // Reconstruction colonne par colonne : sur les fiches en 2 colonnes, Tesseract.js
+      // (contrairement au moteur en ligne de commande) fusionne souvent les deux colonnes
+      // ligne par ligne dans le texte brut ("Voyage aller" + "Grenade" sur la même ligne).
+      // On reconstruit l'ordre de lecture à partir des coordonnées de chaque mot :
+      // colonne gauche lue en entier de haut en bas, puis colonne droite.
+      let columnAwareText = text;
+      const words = data.words || [];
+      if (words.length > 20) {
+        const minX = Math.min(...words.map((w) => w.bbox.x0));
+        const maxX = Math.max(...words.map((w) => w.bbox.x1));
+        const midX = (minX + maxX) / 2;
+
+        const buildColumnText = (colWords: typeof words) => {
+          const sorted = [...colWords].sort((a, b) => a.bbox.y0 - b.bbox.y0);
+          const lines: { y: number; words: typeof words }[] = [];
+          const lineHeightTolerance = 12;
+          sorted.forEach((w) => {
+            const line = lines.find((l) => Math.abs(l.y - w.bbox.y0) < lineHeightTolerance);
+            if (line) {
+              line.words.push(w);
+              line.y = (line.y + w.bbox.y0) / 2;
+            } else {
+              lines.push({ y: w.bbox.y0, words: [w] });
+            }
+          });
+          lines.sort((a, b) => a.y - b.y);
+          let out = "";
+          let prevY: number | null = null;
+          lines.forEach((l) => {
+            const lineText = l.words.sort((a, b) => a.bbox.x0 - b.bbox.x0).map((w) => w.text).join(" ");
+            if (prevY !== null && l.y - prevY > lineHeightTolerance * 2.5) {
+              out += "\n";
+            }
+            out += lineText + "\n";
+            prevY = l.y;
+          });
+          return out;
+        };
+
+        const leftWords = words.filter((w) => w.bbox.x0 < midX);
+        const rightWords = words.filter((w) => w.bbox.x0 >= midX);
+        columnAwareText = buildColumnText(leftWords) + "\n\n" + buildColumnText(rightWords);
+      }
+      setOcrRawText(
+        `--- TEXTE BRUT (ordre original) ---\n${text}\n\n--- TEXTE RECONSTRUIT PAR COLONNE ---\n${columnAwareText}`
+      );
 
       // 1er essai : programme au format texte simple avec "JOUR X" écrit en toutes lettres
       // (fonctionne pour les devis d'agences concurrentes en PDF/Word classiques).
       const jourRegex = /JOUR\s*\d+[^\n]*(?:\n(?!JOUR\s*\d+|BUDGET|AUTRES)[^\n]*)*/gi;
-      let joursTrouves: string[] = text.match(jourRegex) || [];
+      let joursTrouves: string[] = columnAwareText.match(jourRegex) || [];
       let usedFallback = false;
 
       // Repli : sur les fiches Scolamove/brochures illustrées, le numéro "JOUR X" est un
@@ -338,7 +389,7 @@ export default function DevisExpressPage() {
         const startKeywords =
           /^(départ|arrivée|visite|excursion|retour|petit-déjeuner|découverte|journée|matinée|après-midi|route)/i;
         const excludeNoise = /budget|^www\.|base\s*\d+\s*\+\s*\d+|environ.*€/i;
-        const blocks = text
+        const blocks = columnAwareText
           .split(/\n\s*\n/)
           .map((b) => b.trim())
           .filter(Boolean);
