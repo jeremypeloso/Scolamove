@@ -639,7 +639,13 @@ export default function DevisExpressPage() {
     const dateStr = new Date().toLocaleDateString("fr-FR");
     const etabStr = [etablissement, ville].filter(Boolean).join(" — ") || "Établissement scolaire";
     const periodeStr = dateVoyage || `${jours} jours / ${nuits} nuits (dates à préciser)`;
-    const sejourTotal = result.prixFerme - result.visitesTotal;
+    // "Prix du séjour" = tout ce qui est déjà inclus dans le forfait de base (transport,
+    // hébergement, pension, assistance), hors visites (affichées à part) et hors options
+    // ajoutées séparément (assurance, taxe de séjour, repas trajet) — sinon ces montants
+    // se retrouvent comptés deux fois : une fois masqués ici, une fois sur leur propre ligne.
+    const visitesAvecMarge = result.visitesTotal * (1 + marge / 100);
+    // Les repas trajet, s'ils sont inclus, sont fondus dans le forfait — pas de ligne à part.
+    const sejourTotal = result.avecMarge - visitesAvecMarge + result.repasTrajetTotal;
     const logoUrl = logoDataUrl;
 
     const comprend = [
@@ -723,7 +729,7 @@ export default function DevisExpressPage() {
             </View>
             <View style={pdfStyles.offerRow}>
               <Text style={pdfStyles.offerLabelCell}>Visites / activités</Text>
-              <Text style={pdfStyles.offerValueCell}>{result.visitesTotal.toFixed(2)} €</Text>
+              <Text style={pdfStyles.offerValueCell}>{visitesAvecMarge.toFixed(2)} €</Text>
             </View>
             {assuranceCheck && (
               <View style={pdfStyles.offerRow}>
@@ -735,12 +741,6 @@ export default function DevisExpressPage() {
               <View style={pdfStyles.offerRow}>
                 <Text style={pdfStyles.offerLabelCell}>Taxe de séjour ({nuits} nuits)</Text>
                 <Text style={pdfStyles.offerValueCell}>{result.taxeSejourTotal.toFixed(2)} €</Text>
-              </View>
-            )}
-            {repasTrajetCheck && (
-              <View style={pdfStyles.offerRow}>
-                <Text style={pdfStyles.offerLabelCell}>Repas trajet aller/retour</Text>
-                <Text style={pdfStyles.offerValueCell}>{result.repasTrajetTotal.toFixed(2)} €</Text>
               </View>
             )}
           </View>
@@ -1902,3 +1902,5 @@ Jérémy — Scolamove`;
     </main>
   );
 }
+git add -A && git commit -m "fix: fold repas trajet amount into forfait line, remove separate PDF row" && git push
+vercel --prod
