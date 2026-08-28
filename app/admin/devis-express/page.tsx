@@ -87,6 +87,8 @@ type SavedDevisData = {
   assuranceMin: number;
   taxeSejourCheck: boolean;
   taxeSejourMontant: number;
+  repasTrajetCheck: boolean;
+  repasTrajetMontant: number;
   cautionCheck: boolean;
   cautionMontant: number;
   chambreIndivCheck: boolean;
@@ -164,6 +166,8 @@ export default function DevisExpressPage() {
   const [assuranceMin, setAssuranceMin] = useState(6);
   const [taxeSejourCheck, setTaxeSejourCheck] = useState(false);
   const [taxeSejourMontant, setTaxeSejourMontant] = useState(1.5);
+  const [repasTrajetCheck, setRepasTrajetCheck] = useState(false);
+  const [repasTrajetMontant, setRepasTrajetMontant] = useState(33);
   const [cautionCheck, setCautionCheck] = useState(false);
   const [cautionMontant, setCautionMontant] = useState(10);
   const [chambreIndivCheck, setChambreIndivCheck] = useState(false);
@@ -316,11 +320,12 @@ export default function DevisExpressPage() {
       ? Math.max((avecMarge * assurancePct) / 100, assuranceMin)
       : 0;
     const taxeSejourTotal = taxeSejourCheck ? taxeSejourMontant * nuits : 0;
+    const repasTrajetTotal = repasTrajetCheck ? repasTrajetMontant : 0;
     const chambreIndivTotalGroupe = chambreIndivCheck
       ? chambreIndivMontant * nuits * accomp
       : 0;
 
-    const prixFerme = avecMarge + assuranceMontant + taxeSejourTotal;
+    const prixFerme = avecMarge + assuranceMontant + taxeSejourTotal + repasTrajetTotal;
 
     return {
       pax,
@@ -335,6 +340,7 @@ export default function DevisExpressPage() {
       avecMarge,
       assuranceMontant,
       taxeSejourTotal,
+      repasTrajetTotal,
       chambreIndivTotalGroupe,
       prixFerme,
       joursPension,
@@ -355,6 +361,8 @@ export default function DevisExpressPage() {
     assuranceMin,
     taxeSejourCheck,
     taxeSejourMontant,
+    repasTrajetCheck,
+    repasTrajetMontant,
     cautionCheck,
     chambreIndivCheck,
     chambreIndivMontant,
@@ -640,14 +648,15 @@ export default function DevisExpressPage() {
         : "Le transport en autocar de la flotte Festimove, depuis votre établissement, aller et retour, et son utilisation sur place pour le programme des visites",
       "Les repas et l'hébergement des chauffeurs, ainsi que les frais de parking, autoroutes et péages",
       `L'hébergement en pension complète (${nuits} nuits)`,
+      repasTrajetCheck ? "Les repas du voyage aller et retour" : null,
       taxeSejourCheck ? "Les taxes de séjour" : "Les taxes de séjour, quand applicables",
       assuranceCheck ? "L'assurance annulation" : "Une prestation d'assistance et de rapatriement en cas d'accident grave",
       "Une permanence téléphonique 24h/24 durant votre voyage",
       "La réservation des sites et musées quand elle est obligatoire",
       "De la documentation pédagogique à télécharger",
-    ];
+    ].filter((l): l is string => Boolean(l));
     const nComprend = [
-      "Les repas du voyage aller et retour, ainsi que les repas proposés en option",
+      repasTrajetCheck ? null : "Les repas du voyage aller et retour, ainsi que les repas proposés en option",
       assuranceCheck ? null : "L'assurance annulation, proposée en option",
       taxeSejourCheck ? null : "Les taxes de séjour, quand applicables sur place",
       cautionCheck
@@ -726,6 +735,12 @@ export default function DevisExpressPage() {
               <View style={pdfStyles.offerRow}>
                 <Text style={pdfStyles.offerLabelCell}>Taxe de séjour ({nuits} nuits)</Text>
                 <Text style={pdfStyles.offerValueCell}>{result.taxeSejourTotal.toFixed(2)} €</Text>
+              </View>
+            )}
+            {repasTrajetCheck && (
+              <View style={pdfStyles.offerRow}>
+                <Text style={pdfStyles.offerLabelCell}>Repas trajet aller/retour</Text>
+                <Text style={pdfStyles.offerValueCell}>{result.repasTrajetTotal.toFixed(2)} €</Text>
               </View>
             )}
           </View>
@@ -837,6 +852,8 @@ export default function DevisExpressPage() {
       assuranceMin,
       taxeSejourCheck,
       taxeSejourMontant,
+      repasTrajetCheck,
+      repasTrajetMontant,
       cautionCheck,
       cautionMontant,
       chambreIndivCheck,
@@ -972,6 +989,8 @@ export default function DevisExpressPage() {
     setAssuranceMin(d.assuranceMin);
     setTaxeSejourCheck(d.taxeSejourCheck);
     setTaxeSejourMontant(d.taxeSejourMontant);
+    setRepasTrajetCheck(d.repasTrajetCheck || false);
+    setRepasTrajetMontant(d.repasTrajetMontant ?? 33);
     setCautionCheck(d.cautionCheck);
     setCautionMontant(d.cautionMontant);
     setChambreIndivCheck(d.chambreIndivCheck);
@@ -1018,6 +1037,8 @@ export default function DevisExpressPage() {
     setAssuranceMin(6);
     setTaxeSejourCheck(false);
     setTaxeSejourMontant(1.5);
+    setRepasTrajetCheck(false);
+    setRepasTrajetMontant(33);
     setCautionCheck(false);
     setCautionMontant(10);
     setChambreIndivCheck(false);
@@ -1101,7 +1122,7 @@ Durée : ${jours} jours / ${nuits} nuits
 Effectif : ${eleves} élèves + ${accomp} accompagnateurs (${result.pax} personnes)
 
 Prix : ${result.prixFerme.toFixed(0)} € par personne, soit ${(result.prixFerme * result.pax).toFixed(0)} € pour le groupe, sous réserve de disponibilités auprès de nos partenaires (hébergement) au moment de la réservation.
-${assuranceCheck ? `(dont assurance annulation incluse : ${result.assuranceMontant.toFixed(2)} €/pers)\n` : ""}${taxeSejourCheck ? `(dont taxe de séjour incluse : ${result.taxeSejourTotal.toFixed(2)} €/pers)\n` : ""}${cautionCheck ? `Une caution hôtel d'environ ${cautionMontant.toFixed(2)} €/pers sera à régler sur place (restituée en fin de séjour, non incluse au prix).\n` : ""}${chambreIndivCheck ? `Option chambre individuelle pour les accompagnateurs disponible : +${chambreIndivMontant.toFixed(2)} €/nuit/accompagnateur.\n` : ""}
+${assuranceCheck ? `(dont assurance annulation incluse : ${result.assuranceMontant.toFixed(2)} €/pers)\n` : ""}${taxeSejourCheck ? `(dont taxe de séjour incluse : ${result.taxeSejourTotal.toFixed(2)} €/pers)\n` : ""}${repasTrajetCheck ? `(dont repas du trajet aller/retour inclus : ${result.repasTrajetTotal.toFixed(2)} €/pers)\n` : ""}${cautionCheck ? `Une caution hôtel d'environ ${cautionMontant.toFixed(2)} €/pers sera à régler sur place (restituée en fin de séjour, non incluse au prix).\n` : ""}${chambreIndivCheck ? `Option chambre individuelle pour les accompagnateurs disponible : +${chambreIndivMontant.toFixed(2)} €/nuit/accompagnateur.\n` : ""}
 Vous trouverez le devis détaillé (programme, prix comprend/ne comprend pas) en pièce jointe.
 ${teacherEmail.trim() ? `\nCe projet est également accessible depuis votre espace enseignant avec le code ${reference} :\nhttps://www.scolamove.fr/espace-enseignant\n` : ""}
 N'hésitez pas à revenir vers nous pour toute précision.
@@ -1719,6 +1740,15 @@ Jérémy — Scolamove`;
           </label>
 
           <label style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 16 }} className="de-check-row">
+            <input type="checkbox" checked={repasTrajetCheck} onChange={(e) => setRepasTrajetCheck(e.target.checked)} style={{ width: "auto" }} />
+            <span>Inclure les repas du trajet aller/retour (dîner aller, petit-déj + déjeuner retour)</span>
+          </label>
+          <label>
+            Montant total par personne (€)
+            <input type="number" step={0.1} value={repasTrajetMontant} onChange={(e) => setRepasTrajetMontant(Number(e.target.value))} />
+          </label>
+
+          <label style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 16 }} className="de-check-row">
             <input type="checkbox" checked={cautionCheck} onChange={(e) => setCautionCheck(e.target.checked)} style={{ width: "auto" }} />
             <span>Mentionner la caution hôtel (à régler sur place, non incluse au prix)</span>
           </label>
@@ -1839,6 +1869,7 @@ Jérémy — Scolamove`;
             <div className="row"><span>Assistance / gestion, marge {marge}%</span><span>{(result.assistTotal * (1 + marge / 100)).toFixed(2)} €</span></div>
             {assuranceCheck && <div className="row"><span>+ Assurance annulation</span><span>{result.assuranceMontant.toFixed(2)} €</span></div>}
             {taxeSejourCheck && <div className="row"><span>+ Taxe de séjour</span><span>{result.taxeSejourTotal.toFixed(2)} €</span></div>}
+            {repasTrajetCheck && <div className="row"><span>+ Repas trajet aller/retour</span><span>{result.repasTrajetTotal.toFixed(2)} €</span></div>}
             {cautionCheck && <div className="row italic"><span>Caution hôtel (non incluse)</span><span>{cautionMontant.toFixed(2)} €</span></div>}
             {chambreIndivCheck && (
               <div className="row italic"><span>+ Chambre individuelle accompagnateurs (option)</span><span>{result.chambreIndivTotalGroupe.toFixed(2)} € groupe</span></div>
