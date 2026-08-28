@@ -1902,5 +1902,3 @@ Jérémy — Scolamove`;
     </main>
   );
 }
-git add -A && git commit -m "fix: fold repas trajet amount into forfait line, remove separate PDF row" && git push
-vercel --prod
