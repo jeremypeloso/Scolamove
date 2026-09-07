@@ -321,11 +321,14 @@ export default function DevisExpressPage() {
       : 0;
     const taxeSejourTotal = taxeSejourCheck ? taxeSejourMontant * nuits : 0;
     const repasTrajetTotal = repasTrajetCheck ? repasTrajetMontant : 0;
+    // Chambre individuelle accompagnateurs : coût groupe (montant × nuits × accomp),
+    // réparti sur l'ensemble des participants pour rester sur un prix unique par personne.
     const chambreIndivTotalGroupe = chambreIndivCheck
       ? chambreIndivMontant * nuits * accomp
       : 0;
+    const chambreIndivParPers = pax > 0 ? chambreIndivTotalGroupe / pax : 0;
 
-    const prixFerme = avecMarge + assuranceMontant + taxeSejourTotal + repasTrajetTotal;
+    const prixFerme = avecMarge + assuranceMontant + taxeSejourTotal + repasTrajetTotal + chambreIndivParPers;
 
     return {
       pax,
@@ -342,6 +345,7 @@ export default function DevisExpressPage() {
       taxeSejourTotal,
       repasTrajetTotal,
       chambreIndivTotalGroupe,
+      chambreIndivParPers,
       prixFerme,
       joursPension,
     };
@@ -654,6 +658,7 @@ export default function DevisExpressPage() {
         : "Le transport en autocar de la flotte Festimove, depuis votre établissement, aller et retour, et son utilisation sur place pour le programme des visites",
       "Les repas et l'hébergement des chauffeurs, ainsi que les frais de parking, autoroutes et péages",
       `L'hébergement en pension complète (${nuits} nuits)`,
+      chambreIndivCheck ? `La chambre individuelle pour les accompagnateurs (${nuits} nuits)` : null,
       repasTrajetCheck ? "Les repas du voyage aller et retour" : null,
       taxeSejourCheck ? "Les taxes de séjour" : "Les taxes de séjour, quand applicables",
       assuranceCheck ? "L'assurance annulation" : "Une prestation d'assistance et de rapatriement en cas d'accident grave",
@@ -668,9 +673,7 @@ export default function DevisExpressPage() {
       cautionCheck
         ? `L'éventuelle caution demandée sur place par certains hébergements (environ ${cautionMontant.toFixed(2)} € par personne, restituée en fin de séjour)`
         : "L'éventuelle caution demandée sur place par certains hébergements (restituée en fin de séjour)",
-      chambreIndivCheck
-        ? `Le supplément chambre individuelle (${chambreIndivMontant.toFixed(2)} €/nuit/accompagnateur, sur demande)`
-        : "Le supplément chambre individuelle",
+      chambreIndivCheck ? null : "Le supplément chambre individuelle",
       "Les dépenses personnelles",
       'Tout ce qui n\'est pas mentionné dans "Le prix comprend"',
     ].filter((l): l is string => Boolean(l));
@@ -743,6 +746,12 @@ export default function DevisExpressPage() {
                 <Text style={pdfStyles.offerValueCell}>{result.taxeSejourTotal.toFixed(2)} €</Text>
               </View>
             )}
+            {chambreIndivCheck && (
+              <View style={pdfStyles.offerRow}>
+                <Text style={pdfStyles.offerLabelCell}>Chambre individuelle accompagnateurs ({accomp} × {nuits} nuits, réparti sur le groupe)</Text>
+                <Text style={pdfStyles.offerValueCell}>{result.chambreIndivParPers.toFixed(2)} €</Text>
+              </View>
+            )}
           </View>
 
           <View style={pdfStyles.totalBox}>
@@ -759,7 +768,7 @@ export default function DevisExpressPage() {
             )}
             {chambreIndivCheck && (
               <Text style={pdfStyles.totalNote}>
-                + Chambre individuelle accompagnateurs (en option) : {chambreIndivMontant.toFixed(2)} € par nuit et par accompagnateur, sur demande
+                Chambre individuelle pour les accompagnateurs incluse ({chambreIndivMontant.toFixed(2)} € par nuit et par accompagnateur, soit {result.chambreIndivTotalGroupe.toFixed(2)} € pour le groupe)
               </Text>
             )}
           </View>
@@ -1122,7 +1131,7 @@ Durée : ${jours} jours / ${nuits} nuits
 Effectif : ${eleves} élèves + ${accomp} accompagnateurs (${result.pax} personnes)
 
 Prix : ${result.prixFerme.toFixed(0)} € par personne, soit ${(result.prixFerme * result.pax).toFixed(0)} € pour le groupe, sous réserve de disponibilités auprès de nos partenaires (hébergement) au moment de la réservation.
-${assuranceCheck ? `(dont assurance annulation incluse : ${result.assuranceMontant.toFixed(2)} €/pers)\n` : ""}${taxeSejourCheck ? `(dont taxe de séjour incluse : ${result.taxeSejourTotal.toFixed(2)} €/pers)\n` : ""}${repasTrajetCheck ? `(dont repas du trajet aller/retour inclus : ${result.repasTrajetTotal.toFixed(2)} €/pers)\n` : ""}${cautionCheck ? `Une caution hôtel d'environ ${cautionMontant.toFixed(2)} €/pers sera à régler sur place (restituée en fin de séjour, non incluse au prix).\n` : ""}${chambreIndivCheck ? `Option chambre individuelle pour les accompagnateurs disponible : +${chambreIndivMontant.toFixed(2)} €/nuit/accompagnateur.\n` : ""}
+${assuranceCheck ? `(dont assurance annulation incluse : ${result.assuranceMontant.toFixed(2)} €/pers)\n` : ""}${taxeSejourCheck ? `(dont taxe de séjour incluse : ${result.taxeSejourTotal.toFixed(2)} €/pers)\n` : ""}${repasTrajetCheck ? `(dont repas du trajet aller/retour inclus : ${result.repasTrajetTotal.toFixed(2)} €/pers)\n` : ""}${cautionCheck ? `Une caution hôtel d'environ ${cautionMontant.toFixed(2)} €/pers sera à régler sur place (restituée en fin de séjour, non incluse au prix).\n` : ""}${chambreIndivCheck ? `(dont chambre individuelle pour les accompagnateurs incluse : ${result.chambreIndivParPers.toFixed(2)} €/pers, soit ${result.chambreIndivTotalGroupe.toFixed(2)} € pour le groupe)\n` : ""}
 Vous trouverez le devis détaillé (programme, prix comprend/ne comprend pas) en pièce jointe.
 ${teacherEmail.trim() ? `\nCe projet est également accessible depuis votre espace enseignant avec le code ${reference} :\nhttps://www.scolamove.fr/espace-enseignant\n` : ""}
 N'hésitez pas à revenir vers nous pour toute précision.
@@ -1759,7 +1768,7 @@ Jérémy — Scolamove`;
 
           <label style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 16 }} className="de-check-row">
             <input type="checkbox" checked={chambreIndivCheck} onChange={(e) => setChambreIndivCheck(e.target.checked)} style={{ width: "auto" }} />
-            <span>Proposer la chambre individuelle pour les accompagnateurs</span>
+            <span>Inclure la chambre individuelle pour les accompagnateurs (ajoutée au prix)</span>
           </label>
           <label>
             Supplément par nuit et par accompagnateur (€)
@@ -1872,7 +1881,7 @@ Jérémy — Scolamove`;
             {repasTrajetCheck && <div className="row"><span>+ Repas trajet aller/retour</span><span>{result.repasTrajetTotal.toFixed(2)} €</span></div>}
             {cautionCheck && <div className="row italic"><span>Caution hôtel (non incluse)</span><span>{cautionMontant.toFixed(2)} €</span></div>}
             {chambreIndivCheck && (
-              <div className="row italic"><span>+ Chambre individuelle accompagnateurs (option)</span><span>{result.chambreIndivTotalGroupe.toFixed(2)} € groupe</span></div>
+              <div className="row"><span>+ Chambre individuelle accompagnateurs ({result.chambreIndivTotalGroupe.toFixed(2)} € groupe, réparti)</span><span>{result.chambreIndivParPers.toFixed(2)} €</span></div>
             )}
           </div>
           <div className="de-result-footer">
