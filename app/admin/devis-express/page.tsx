@@ -27,24 +27,82 @@ type ZoneKey =
   | "europe-centrale"
   | "lointain";
 
-type ZoneRatios = { t: number; h: number; r: number; a: number };
+// Le transport n'est plus dans ces ratios : il est calculé à part, au kilomètre et à la
+// journée, par véhicule réellement engagé (voir FLOTTE_DEFAUT et allouerVehicules ci-dessous).
+type ZoneRatios = { h: number; r: number; a: number };
 
-const ZONES: Record<ZoneKey, { label: string; ratios: ZoneRatios }> = {
-  france: { label: "France proche (<400km)", ratios: { t: 25, h: 15, r: 13, a: 5 } },
-  "france-loin": { label: "France lointaine", ratios: { t: 31, h: 19, r: 17, a: 6 } },
-  benelux: { label: "Bénélux", ratios: { t: 31, h: 19, r: 17, a: 6 } },
-  espagne: { label: "Espagne", ratios: { t: 35, h: 20, r: 17, a: 6 } },
-  portugal: { label: "Portugal", ratios: { t: 42, h: 24, r: 21, a: 7 } },
-  italie: { label: "Italie", ratios: { t: 42, h: 31, r: 21, a: 6 } },
-  uk: { label: "Royaume-Uni (ferry, tunnel)", ratios: { t: 38, h: 23, r: 20, a: 7 } },
-  irlande: { label: "Irlande (ferry)", ratios: { t: 48, h: 29, r: 25, a: 8 } },
-  "europe-est": { label: "Allemagne", ratios: { t: 31, h: 19, r: 16, a: 6 } },
+const ZONES: Record<ZoneKey, { label: string; ratios: ZoneRatios; kmSuggere: number }> = {
+  france: { label: "France proche (<400km)", ratios: { h: 15, r: 13, a: 5 }, kmSuggere: 700 },
+  "france-loin": { label: "France lointaine", ratios: { h: 19, r: 17, a: 6 }, kmSuggere: 1600 },
+  benelux: { label: "Bénélux", ratios: { h: 19, r: 17, a: 6 }, kmSuggere: 900 },
+  espagne: { label: "Espagne", ratios: { h: 20, r: 17, a: 6 }, kmSuggere: 3500 },
+  portugal: { label: "Portugal", ratios: { h: 24, r: 21, a: 7 }, kmSuggere: 3800 },
+  italie: { label: "Italie", ratios: { h: 31, r: 21, a: 6 }, kmSuggere: 2600 },
+  uk: { label: "Royaume-Uni (ferry, tunnel)", ratios: { h: 23, r: 20, a: 7 }, kmSuggere: 900 },
+  irlande: { label: "Irlande (ferry)", ratios: { h: 29, r: 25, a: 8 }, kmSuggere: 1500 },
+  "europe-est": { label: "Allemagne", ratios: { h: 19, r: 16, a: 6 }, kmSuggere: 1800 },
   "europe-centrale": {
     label: "Europe Centrale (Tchéquie, Pologne, Hongrie, Roumanie)",
-    ratios: { t: 47, h: 29, r: 24, a: 9 },
+    ratios: { h: 29, r: 24, a: 9 },
+    kmSuggere: 2400,
   },
-  lointain: { label: "Long courrier (avion, hors transport)", ratios: { t: 0, h: 30, r: 19, a: 7 } },
+  lointain: { label: "Long courrier (avion, hors transport)", ratios: { h: 30, r: 19, a: 7 }, kmSuggere: 0 },
 };
+
+// Flotte Festimove : un gabarit par ligne. "coef" multiplie le barème km/jour pour ce
+// gabarit (1 = même prix qu'un 43 places ; à monter si le grand gabarit consomme plus,
+// paie plus de péages, ou impose un second conducteur sur longue distance). "qte" est le
+// nombre de véhicules disponibles de ce gabarit.
+type VehiculeConfig = { cap: number; coef: number; qte: number };
+
+const FLOTTE_DEFAUT: VehiculeConfig[] = [
+  { cap: 43, coef: 1, qte: 2 },
+  { cap: 53, coef: 1, qte: 2 },
+  { cap: 57, coef: 1, qte: 2 },
+  { cap: 61, coef: 1, qte: 2 },
+  { cap: 63, coef: 1, qte: 2 },
+  { cap: 98, coef: 1, qte: 1 },
+];
+
+type Allocation = { cout: number; vehicules: number[]; places: number };
+
+// Combinaison de véhicules la moins chère qui couvre "pax" personnes, parmi les gabarits
+// et quantités disponibles. Programmation dynamique : pour chaque gabarit, on essaie
+// d'utiliser 0..qte véhicules de ce gabarit et on garde le total le moins cher par palier
+// de places couvertes.
+function allouerVehicules(pax: number, flotte: { cap: number; qte: number; cout: number }[]): Allocation {
+  if (pax <= 0) return { cout: 0, vehicules: [], places: 0 };
+  const actifs = flotte.filter((v) => v.qte > 0 && v.cap > 0);
+  const n = actifs.length;
+  const dp: number[][] = Array.from({ length: n + 1 }, () => new Array(pax + 1).fill(Infinity));
+  const pick: number[][] = Array.from({ length: n + 1 }, () => new Array(pax + 1).fill(0));
+  dp[0][0] = 0;
+  for (let i = 1; i <= n; i++) {
+    const v = actifs[i - 1];
+    for (let p = 0; p <= pax; p++) {
+      for (let k = 0; k <= v.qte; k++) {
+        const reste = Math.max(0, p - k * v.cap);
+        const c = dp[i - 1][reste];
+        if (c === Infinity) continue;
+        const total = c + k * v.cout;
+        if (total < dp[i][p] - 0.001) {
+          dp[i][p] = total;
+          pick[i][p] = k;
+        }
+      }
+    }
+  }
+  if (dp[n][pax] === Infinity) return { cout: Infinity, vehicules: [], places: 0 };
+  const vehicules: number[] = [];
+  let p = pax;
+  for (let i = n; i >= 1; i--) {
+    const k = pick[i][p];
+    for (let j = 0; j < k; j++) vehicules.push(actifs[i - 1].cap);
+    p = Math.max(0, p - k * actifs[i - 1].cap);
+  }
+  vehicules.sort((a, b) => b - a);
+  return { cout: dp[n][pax], vehicules, places: vehicules.reduce((a, b) => a + b, 0) };
+}
 
 const ADMIN_PASSWORD_FLAG = "scolamove-admin";
 
@@ -79,8 +137,15 @@ type SavedDevisData = {
   confort: "0.85" | "1" | "1.25";
   visites: number;
   marge: number;
-  sousTraite: boolean;
+  km: number;
+  tarifKm: number;
+  tarifExcursion: number;
+  tarifImmobilisation: number;
+  joursExcursion: number;
+  joursImmobilisation: number;
+  baremeVente: boolean;
   margeTransport: number;
+  flotte: VehiculeConfig[];
   ratios: ZoneRatios;
   assuranceCheck: boolean;
   assurancePct: number;
@@ -148,15 +213,33 @@ export default function DevisExpressPage() {
   const [visites, setVisites] = useState(0);
   const [marge, setMarge] = useState(5);
 
-  // --- Transport ---
-  const [sousTraite, setSousTraite] = useState(false);
-  const [margeTransport, setMargeTransport] = useState(20);
+  // --- Transport : barème au kilomètre + à la journée, par véhicule engagé ---
+  const [km, setKm] = useState(0);
+  const [tarifKm, setTarifKm] = useState(2.5);
+  const [tarifExcursion, setTarifExcursion] = useState(1000);
+  const [tarifImmobilisation, setTarifImmobilisation] = useState(500);
+  const [joursExcursion, setJoursExcursion] = useState(0);
+  const [joursImmobilisation, setJoursImmobilisation] = useState(0);
+  // Coché : le barème ci-dessus est déjà un prix de vente, il part tel quel dans le devis.
+  // Décoché : c'est un coût, la marge transport s'y ajoute.
+  const [baremeVente, setBaremeVente] = useState(true);
+  const [margeTransport, setMargeTransport] = useState(25);
+  const [flotte, setFlotte] = useState<VehiculeConfig[]>(FLOTTE_DEFAUT);
+
+  function setFlotteChamp(index: number, champ: "coef" | "qte", valeur: number) {
+    setFlotte((prev) => prev.map((v, i) => (i === index ? { ...v, [champ]: valeur } : v)));
+  }
 
   // --- Ratios ajustables (seedés par zone) ---
-  const emptyRatios: ZoneRatios = { t: 0, h: 0, r: 0, a: 0 };
+  const emptyRatios: ZoneRatios = { h: 0, r: 0, a: 0 };
   const [ratios, setRatios] = useState<ZoneRatios>(emptyRatios);
   useEffect(() => {
-    setRatios(zone ? ZONES[zone].ratios : emptyRatios);
+    if (zone) {
+      setRatios(ZONES[zone].ratios);
+      setKm((prev) => (prev === 0 ? ZONES[zone].kmSuggere : prev));
+    } else {
+      setRatios(emptyRatios);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [zone]);
 
@@ -298,23 +381,39 @@ export default function DevisExpressPage() {
     const niveauFactor = parseFloat(confort);
     const groupFactor = pax < 20 ? 1.4 : pax < 40 ? 1.15 : pax < 60 ? 1.0 : 0.95;
 
-    const coachBase = 43;
-    const transportFactor = coachBase / Math.max(pax, 1);
-    const transportTotal = ratios.t * Math.max(jours, 1) * transportFactor;
+    // --- Transport : coût par véhicule pour tout le voyage, avant coefficient de gabarit ---
+    // km*tarifKm couvre le trajet aller-retour, quel que soit le nombre de jours de route.
+    // Les journées d'excursion et d'immobilisation sont celles où le car ne roule pas
+    // longue distance mais reste mobilisé (visites sur place, ou repos réglementaire du
+    // conducteur) — elles sont facturées à la journée, pas au kilomètre.
+    const baseVehicule =
+      km * tarifKm + joursExcursion * tarifExcursion + joursImmobilisation * tarifImmobilisation;
+    const flotteAvecCout = flotte
+      .filter((v) => v.qte > 0 && v.cap > 0)
+      .map((v) => ({ cap: v.cap, qte: v.qte, cout: v.coef * baseVehicule }));
+    const alloc = allouerVehicules(pax, flotteAvecCout);
+    const vehicules = alloc.vehicules;
+    const transportDisponible = alloc.cout !== Infinity;
+
+    // Barème déjà en prix de vente : part tel quel. Sinon, traité comme un coût, la marge
+    // transport s'y ajoute.
+    const transportGroupe = transportDisponible
+      ? baremeVente
+        ? alloc.cout
+        : alloc.cout * (1 + margeTransport / 100)
+      : 0;
+    const transportParPersonne = pax > 0 ? transportGroupe / pax : 0;
+
     const hebergTotal = ratios.h * nuits * niveauFactor * groupFactor;
     const joursPension = Math.max(nuits + 1, 1);
     const repasTotal = ratios.r * joursPension * niveauFactor;
     const assistTotal = ratios.a * Math.max(jours, 1);
     const visitesTotal = visites * joursPension;
 
-    const transportCost = transportTotal * (sousTraite ? 1 : 0.7);
-    const transportMargePct = sousTraite ? marge : margeTransport;
-    const transportWithMarge = transportCost * (1 + transportMargePct / 100);
-
     const restTotal = hebergTotal + repasTotal + assistTotal + visitesTotal;
     const restWithMarge = restTotal * (1 + marge / 100);
 
-    const avecMarge = transportWithMarge + restWithMarge;
+    const avecMarge = transportParPersonne + restWithMarge;
 
     const assuranceMontant = assuranceCheck
       ? Math.max((avecMarge * assurancePct) / 100, assuranceMin)
@@ -332,14 +431,15 @@ export default function DevisExpressPage() {
 
     return {
       pax,
-      transportTotal,
+      transportDisponible,
+      vehicules,
+      placesVehicules: alloc.places,
+      transportGroupe,
+      transportParPersonne,
       hebergTotal,
       repasTotal,
       assistTotal,
       visitesTotal,
-      transportCost,
-      transportMargePct,
-      transportWithMarge,
       avecMarge,
       assuranceMontant,
       taxeSejourTotal,
@@ -357,9 +457,16 @@ export default function DevisExpressPage() {
     jours,
     nuits,
     visites,
-    sousTraite,
-    marge,
+    km,
+    tarifKm,
+    tarifExcursion,
+    tarifImmobilisation,
+    joursExcursion,
+    joursImmobilisation,
+    baremeVente,
     margeTransport,
+    flotte,
+    marge,
     assuranceCheck,
     assurancePct,
     assuranceMin,
@@ -651,10 +758,11 @@ export default function DevisExpressPage() {
     // Les repas trajet, s'ils sont inclus, sont fondus dans le forfait — pas de ligne à part.
     const sejourTotal = result.avecMarge - visitesAvecMarge + result.repasTrajetTotal;
     const logoUrl = logoDataUrl;
+    const nbVehicules = result.vehicules.length;
 
     const comprend = [
-      sousTraite
-        ? "Le transport en autocar, depuis votre établissement, aller et retour, et son utilisation sur place pour le programme des visites"
+      nbVehicules > 1
+        ? `Le transport en autocars de la flotte Festimove (${nbVehicules} véhicules), depuis votre établissement, aller et retour, et leur utilisation sur place pour le programme des visites`
         : "Le transport en autocar de la flotte Festimove, depuis votre établissement, aller et retour, et son utilisation sur place pour le programme des visites",
       "Les repas et l'hébergement des chauffeurs, ainsi que les frais de parking, autoroutes et péages",
       `L'hébergement en pension complète (${nuits} nuits)`,
@@ -853,8 +961,15 @@ export default function DevisExpressPage() {
       confort,
       visites,
       marge,
-      sousTraite,
+      km,
+      tarifKm,
+      tarifExcursion,
+      tarifImmobilisation,
+      joursExcursion,
+      joursImmobilisation,
+      baremeVente,
       margeTransport,
+      flotte,
       ratios,
       assuranceCheck,
       assurancePct,
@@ -990,8 +1105,16 @@ export default function DevisExpressPage() {
     setConfort(d.confort);
     setVisites(d.visites);
     setMarge(d.marge);
-    setSousTraite(d.sousTraite);
-    setMargeTransport(d.margeTransport);
+    // Anciens devis (avant le passage au barème km/jour) : valeurs par défaut de repli.
+    setKm(d.km ?? 0);
+    setTarifKm(d.tarifKm ?? 2.5);
+    setTarifExcursion(d.tarifExcursion ?? 1000);
+    setTarifImmobilisation(d.tarifImmobilisation ?? 500);
+    setJoursExcursion(d.joursExcursion ?? 0);
+    setJoursImmobilisation(d.joursImmobilisation ?? 0);
+    setBaremeVente(d.baremeVente ?? true);
+    setMargeTransport(d.margeTransport ?? 25);
+    setFlotte(d.flotte ?? FLOTTE_DEFAUT);
     setRatios(d.ratios);
     setAssuranceCheck(d.assuranceCheck);
     setAssurancePct(d.assurancePct);
@@ -1038,8 +1161,15 @@ export default function DevisExpressPage() {
     setConfort("1");
     setVisites(0);
     setMarge(5);
-    setSousTraite(false);
-    setMargeTransport(20);
+    setKm(0);
+    setTarifKm(2.5);
+    setTarifExcursion(1000);
+    setTarifImmobilisation(500);
+    setJoursExcursion(0);
+    setJoursImmobilisation(0);
+    setBaremeVente(true);
+    setMargeTransport(25);
+    setFlotte(FLOTTE_DEFAUT);
     setRatios(emptyRatios);
     setAssuranceCheck(false);
     setAssurancePct(2.5);
@@ -1675,30 +1805,97 @@ Jérémy — Scolamove`;
             </label>
           </div>
 
-          <label style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 16 }} className="de-check-row" >
-            <input type="checkbox" checked={sousTraite} onChange={(e) => setSousTraite(e.target.checked)} style={{ width: "auto" }} />
-            <span>Sous-traiter le transport (autocariste tiers)</span>
-          </label>
-          <div className="admin-form-grid two" style={{ marginTop: 8 }}>
+          <div className="admin-form-grid two" style={{ marginTop: 16 }}>
             <label>
-              Marge transport {sousTraite ? "(sous-traité)" : "(flotte propre)"} (%)
-              <input type="number" value={margeTransport} min={0} onChange={(e) => setMargeTransport(Number(e.target.value))} />
+              Kilomètres aller-retour
+              <input type="number" value={km} min={0} onChange={(e) => setKm(Number(e.target.value))} />
+            </label>
+            <label>
+              Prix au kilomètre (€)
+              <input type="number" value={tarifKm} step={0.05} min={0} onChange={(e) => setTarifKm(Number(e.target.value))} />
+            </label>
+            <label>
+              Journées d&apos;excursion
+              <input type="number" value={joursExcursion} min={0} onChange={(e) => setJoursExcursion(Number(e.target.value))} />
+            </label>
+            <label>
+              Journée d&apos;excursion (€)
+              <input type="number" value={tarifExcursion} step={50} min={0} onChange={(e) => setTarifExcursion(Number(e.target.value))} />
+            </label>
+            <label>
+              Journées d&apos;immobilisation
+              <input type="number" value={joursImmobilisation} min={0} onChange={(e) => setJoursImmobilisation(Number(e.target.value))} />
+            </label>
+            <label>
+              Journée d&apos;immobilisation (€)
+              <input type="number" value={tarifImmobilisation} step={50} min={0} onChange={(e) => setTarifImmobilisation(Number(e.target.value))} />
             </label>
           </div>
           <p className="de-hint">
-            Par défaut, transport assuré par la flotte Festimove : coût réel estimé à ~70% du tarif
-            marché, ratio calibré sur un car de 43 places (le plus petit de la flotte).
+            Transport = (km × prix au km + journées d&apos;excursion × tarif + journées
+            d&apos;immobilisation × tarif) × coefficient de gabarit, pour chaque véhicule
+            réellement nécessaire au groupe. Une journée d&apos;excursion est une journée où le
+            car reste sur place pour les visites ; une journée d&apos;immobilisation est une
+            journée où il ne roule pas longue distance mais reste mobilisé (repos réglementaire
+            du conducteur, par exemple). Les journées de route pure ne comptent qu&apos;au
+            kilomètre.
           </p>
+
+          <label style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 12 }} className="de-check-row">
+            <input type="checkbox" checked={baremeVente} onChange={(e) => setBaremeVente(e.target.checked)} style={{ width: "auto" }} />
+            <span>Le barème ci-dessus est déjà un prix de vente</span>
+          </label>
+          {!baremeVente && (
+            <div className="admin-form-grid two" style={{ marginTop: 8 }}>
+              <label>
+                Marge transport (%)
+                <input type="number" value={margeTransport} min={0} onChange={(e) => setMargeTransport(Number(e.target.value))} />
+              </label>
+            </div>
+          )}
+
+          <details open style={{ marginTop: 16 }}>
+            <summary style={{ cursor: "pointer", fontSize: 12, color: "#6b7268", textTransform: "uppercase" }}>
+              Flotte disponible ▾
+            </summary>
+            <div style={{ marginTop: 10 }}>
+              {flotte.map((v, i) => (
+                <div key={v.cap} className="admin-form-grid two" style={{ marginBottom: 4 }}>
+                  <label>
+                    {v.cap} places — coefficient de gabarit
+                    <input
+                      type="number"
+                      value={v.coef}
+                      step={0.05}
+                      min={0.5}
+                      onChange={(e) => setFlotteChamp(i, "coef", Number(e.target.value))}
+                    />
+                  </label>
+                  <label>
+                    Véhicules disponibles
+                    <input
+                      type="number"
+                      value={v.qte}
+                      min={0}
+                      onChange={(e) => setFlotteChamp(i, "qte", Number(e.target.value))}
+                    />
+                  </label>
+                </div>
+              ))}
+            </div>
+            {!result.transportDisponible && (
+              <p className="de-hint" style={{ color: "#b3452c" }}>
+                Aucune combinaison de véhicules disponibles ne couvre {result.pax} participants.
+                Augmente la disponibilité d&apos;un gabarit ci-dessus.
+              </p>
+            )}
+          </details>
 
           <details style={{ marginTop: 16 }}>
             <summary style={{ cursor: "pointer", fontSize: 12, color: "#6b7268", textTransform: "uppercase" }}>
               Ajuster les ratios de base (€/jour/pers) ▾
             </summary>
             <div className="admin-form-grid two" style={{ marginTop: 10 }}>
-              <label>
-                Transport
-                <input type="number" value={ratios.t} onChange={(e) => setRatios({ ...ratios, t: Number(e.target.value) })} />
-              </label>
               <label>
                 Hébergement (€/nuit)
                 <input type="number" value={ratios.h} onChange={(e) => setRatios({ ...ratios, h: Number(e.target.value) })} />
@@ -1871,7 +2068,13 @@ Jérémy — Scolamove`;
             {result.prixFerme.toFixed(0)} € <small>/ personne</small>
           </div>
           <div className="de-result-grid">
-            <div className="row"><span>Transport {sousTraite ? "(sous-traité)" : "(flotte Festimove)"}, marge {result.transportMargePct}%</span><span>{result.transportWithMarge.toFixed(2)} €</span></div>
+            <div className="row">
+              <span>
+                Transport ({result.vehicules.length > 0 ? result.vehicules.join(" + ") + " places" : "aucun véhicule"}
+                {baremeVente ? "" : `, marge ${margeTransport}%`})
+              </span>
+              <span>{result.transportParPersonne.toFixed(2)} €</span>
+            </div>
             <div className="row"><span>Hébergement ({nuits} nuits), marge {marge}%</span><span>{(result.hebergTotal * (1 + marge / 100)).toFixed(2)} €</span></div>
             <div className="row"><span>Pension complète ({jours} jours), marge {marge}%</span><span>{(result.repasTotal * (1 + marge / 100)).toFixed(2)} €</span></div>
             <div className="row"><span>Visites / activités, marge {marge}%</span><span>{(result.visitesTotal * (1 + marge / 100)).toFixed(2)} €</span></div>
