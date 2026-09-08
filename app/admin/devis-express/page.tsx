@@ -1795,17 +1795,19 @@ Jérémy — Scolamove`;
               Accompagnateurs
               <input type="number" value={accomp} min={0} onChange={(e) => setAccomp(Number(e.target.value))} />
             </label>
-            <label>
-              Budget visites/activités (€/jour/pers)
-              <input type="number" value={visites} min={0} onChange={(e) => setVisites(Number(e.target.value))} />
-            </label>
-            <label>
-              Marge — hébergement/repas/visites (%)
-              <input type="number" value={marge} min={0} onChange={(e) => setMarge(Number(e.target.value))} />
-            </label>
           </div>
+        </div>
 
-          <div className="admin-form-grid two" style={{ marginTop: 16 }}>
+        {/* Transport */}
+        <div className="admin-panel de-panel transport">
+          <div className="de-panel-head">
+            <div className="de-panel-icon">🛣️</div>
+            <div>
+              <span className="de-eyebrow">Étape 3</span>
+              <h2>Transport</h2>
+            </div>
+          </div>
+          <div className="admin-form-grid two">
             <label>
               Kilomètres aller-retour
               <input type="number" value={km} min={0} onChange={(e) => setKm(Number(e.target.value))} />
@@ -1854,43 +1856,61 @@ Jérémy — Scolamove`;
             </div>
           )}
 
-          <details open style={{ marginTop: 16 }}>
-            <summary style={{ cursor: "pointer", fontSize: 12, color: "#6b7268", textTransform: "uppercase" }}>
-              Flotte disponible ▾
-            </summary>
-            <div style={{ marginTop: 10 }}>
-              {flotte.map((v, i) => (
-                <div key={v.cap} className="admin-form-grid two" style={{ marginBottom: 4 }}>
-                  <label>
-                    {v.cap} places — coefficient de gabarit
-                    <input
-                      type="number"
-                      value={v.coef}
-                      step={0.05}
-                      min={0.5}
-                      onChange={(e) => setFlotteChamp(i, "coef", Number(e.target.value))}
-                    />
-                  </label>
-                  <label>
-                    Véhicules disponibles
-                    <input
-                      type="number"
-                      value={v.qte}
-                      min={0}
-                      onChange={(e) => setFlotteChamp(i, "qte", Number(e.target.value))}
-                    />
-                  </label>
-                </div>
-              ))}
-            </div>
+          <div style={{ marginTop: 18, paddingTop: 16, borderTop: "1px dashed var(--line)" }}>
+            <h3 style={{ margin: "0 0 10px", fontSize: 13, fontWeight: 600, color: "#3f4438" }}>
+              Flotte disponible
+            </h3>
+            {flotte.map((v, i) => (
+              <div key={v.cap} className="admin-form-grid two" style={{ marginBottom: 4 }}>
+                <label>
+                  {v.cap} places — coefficient de gabarit
+                  <input
+                    type="number"
+                    value={v.coef}
+                    step={0.05}
+                    min={0.5}
+                    onChange={(e) => setFlotteChamp(i, "coef", Number(e.target.value))}
+                  />
+                </label>
+                <label>
+                  Véhicules disponibles
+                  <input
+                    type="number"
+                    value={v.qte}
+                    min={0}
+                    onChange={(e) => setFlotteChamp(i, "qte", Number(e.target.value))}
+                  />
+                </label>
+              </div>
+            ))}
             {!result.transportDisponible && (
               <p className="de-hint" style={{ color: "#b3452c" }}>
                 Aucune combinaison de véhicules disponibles ne couvre {result.pax} participants.
                 Augmente la disponibilité d&apos;un gabarit ci-dessus.
               </p>
             )}
-          </details>
+          </div>
+        </div>
 
+        {/* Hébergement & restauration */}
+        <div className="admin-panel de-panel hebergement">
+          <div className="de-panel-head">
+            <div className="de-panel-icon">🏨</div>
+            <div>
+              <span className="de-eyebrow">Étape 4</span>
+              <h2>Hébergement &amp; restauration</h2>
+            </div>
+          </div>
+          <div className="admin-form-grid two">
+            <label>
+              Budget visites/activités (€/jour/pers)
+              <input type="number" value={visites} min={0} onChange={(e) => setVisites(Number(e.target.value))} />
+            </label>
+            <label>
+              Marge — hébergement/repas/visites (%)
+              <input type="number" value={marge} min={0} onChange={(e) => setMarge(Number(e.target.value))} />
+            </label>
+          </div>
           <details style={{ marginTop: 16 }}>
             <summary style={{ cursor: "pointer", fontSize: 12, color: "#6b7268", textTransform: "uppercase" }}>
               Ajuster les ratios de base (€/jour/pers) ▾
@@ -1917,7 +1937,7 @@ Jérémy — Scolamove`;
           <div className="de-panel-head">
             <div className="de-panel-icon">💶</div>
             <div>
-              <span className="de-eyebrow">Étape 3</span>
+              <span className="de-eyebrow">Étape 5</span>
               <h2>Options tarifaires (hors forfait)</h2>
             </div>
           </div>
