@@ -879,15 +879,6 @@ export default function DevisExpressPage() {
     visRecapStrong: { fontFamily: "Helvetica-Bold", color: "#3d5a45" },
     visHint: { fontSize: 8.5, color: "#888", fontStyle: "italic", marginBottom: 8 },
     visNote: { fontSize: 9.5, lineHeight: 1.5, color: "#444", marginBottom: 10 },
-    visFillBox: {
-      borderWidth: 1,
-      borderColor: "#e2ddd0",
-      borderStyle: "dashed",
-      borderRadius: 4,
-      padding: 10,
-      marginTop: 6,
-    },
-    visFillLine: { borderBottomWidth: 1, borderBottomColor: "#ded9cc", height: 22, marginBottom: 6 },
     signoff: { marginTop: 22, fontSize: 10 },
     signoffName: { fontFamily: "Helvetica-Bold", marginTop: 12, color: "#3d5a45" },
     legalFooter: {
@@ -1217,17 +1208,6 @@ export default function DevisExpressPage() {
                 ))}
               </>
             ) : null}
-
-            <Text style={pdfStyles.sectionTitle}>Vos visites complémentaires (à compléter)</Text>
-            <Text style={pdfStyles.visHint}>
-              Notez ici les visites, ateliers ou activités que vous souhaitez ajouter au programme. Renvoyez-nous
-              cette page complétée et nous chiffrons les entrées correspondantes.
-            </Text>
-            <View style={pdfStyles.visFillBox}>
-              {Array.from({ length: 8 }).map((_, i) => (
-                <View key={`fill-${i}`} style={pdfStyles.visFillLine} />
-              ))}
-            </View>
 
             <Text style={pdfStyles.legalFooter}>
               Scolamove — Agence de voyages scolaires · Ce document est une estimation non contractuelle établie à titre indicatif.
