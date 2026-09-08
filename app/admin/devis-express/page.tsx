@@ -1673,7 +1673,7 @@ Jérémy — Scolamove`;
               marginBottom: 10,
             }}
           >
-            <span>Devis enregistr\u00e9s</span>
+            <span>Devis enregistrés</span>
             <button
               type="button"
               onClick={handleNewDevis}
@@ -1698,7 +1698,7 @@ Jérémy — Scolamove`;
           {loadingSaved ? (
             <p style={{ color: "#8fb3a4", fontSize: 11.5, margin: 0 }}>Chargement...</p>
           ) : arborescenceDevis.length === 0 ? (
-            <p style={{ color: "#8fb3a4", fontSize: 11.5, margin: 0 }}>Aucun devis enregistr\u00e9.</p>
+            <p style={{ color: "#8fb3a4", fontSize: 11.5, margin: 0 }}>Aucun devis enregistré.</p>
           ) : (
             arborescenceDevis.map((an) => (
               <details key={an.annee} open style={{ marginBottom: 6 }}>
@@ -1787,7 +1787,7 @@ Jérémy — Scolamove`;
                                 lineHeight: 1,
                               }}
                             >
-                              \u00d7
+                              ×
                             </button>
                           </div>
 
@@ -1807,11 +1807,11 @@ Jérémy — Scolamove`;
                             }}
                           >
                             <span style={{ display: "block", fontWeight: 700, fontSize: 11.5, color: "#b6e59a" }}>
-                              v{versions.length + 1} \u00b7 actuelle
+                              v{versions.length + 1} · actuelle
                             </span>
                             <span style={{ display: "block", fontSize: 10.5, color: "#8fb3a4" }}>
                               {fmt(dateCourante)}
-                              {row.prix_ferme ? ` \u00b7 ${Number(row.prix_ferme).toFixed(0)} \u20ac/pers` : ""}
+                              {row.prix_ferme ? ` · ${Number(row.prix_ferme).toFixed(0)} €/pers` : ""}
                             </span>
                           </button>
 
@@ -1836,7 +1836,7 @@ Jérémy — Scolamove`;
                               </span>
                               <span style={{ display: "block", fontSize: 10.5, color: "#8fb3a4" }}>
                                 {fmt(v.savedAt)}
-                                {v.prixFerme ? ` \u00b7 ${v.prixFerme.toFixed(0)} \u20ac/pers` : ""}
+                                {v.prixFerme ? ` · ${v.prixFerme.toFixed(0)} €/pers` : ""}
                               </span>
                             </button>
                           ))}
