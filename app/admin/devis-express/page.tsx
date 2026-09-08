@@ -27,52 +27,24 @@ type ZoneKey =
   | "europe-centrale"
   | "lointain";
 
-// Le transport n'est plus dans ces ratios : il est calculé à part, au kilomètre et à la
-// journée, par véhicule réellement engagé (voir CAPACITES_FLOTTE et allouerVehicules ci-dessous).
-type ZoneRatios = { h: number; r: number; a: number };
+type ZoneRatios = { t: number; h: number; r: number; a: number };
 
-const ZONES: Record<ZoneKey, { label: string; ratios: ZoneRatios; kmSuggere: number }> = {
-  france: { label: "France proche (<400km)", ratios: { h: 15, r: 13, a: 5 }, kmSuggere: 700 },
-  "france-loin": { label: "France lointaine", ratios: { h: 19, r: 17, a: 6 }, kmSuggere: 1600 },
-  benelux: { label: "Bénélux", ratios: { h: 19, r: 17, a: 6 }, kmSuggere: 900 },
-  espagne: { label: "Espagne", ratios: { h: 20, r: 17, a: 6 }, kmSuggere: 3500 },
-  portugal: { label: "Portugal", ratios: { h: 24, r: 21, a: 7 }, kmSuggere: 3800 },
-  italie: { label: "Italie", ratios: { h: 31, r: 21, a: 6 }, kmSuggere: 2600 },
-  uk: { label: "Royaume-Uni (ferry, tunnel)", ratios: { h: 23, r: 20, a: 7 }, kmSuggere: 900 },
-  irlande: { label: "Irlande (ferry)", ratios: { h: 29, r: 25, a: 8 }, kmSuggere: 1500 },
-  "europe-est": { label: "Allemagne", ratios: { h: 19, r: 16, a: 6 }, kmSuggere: 1800 },
+const ZONES: Record<ZoneKey, { label: string; ratios: ZoneRatios }> = {
+  france: { label: "France proche (<400km)", ratios: { t: 25, h: 15, r: 13, a: 5 } },
+  "france-loin": { label: "France lointaine", ratios: { t: 31, h: 19, r: 17, a: 6 } },
+  benelux: { label: "Bénélux", ratios: { t: 31, h: 19, r: 17, a: 6 } },
+  espagne: { label: "Espagne", ratios: { t: 35, h: 20, r: 17, a: 6 } },
+  portugal: { label: "Portugal", ratios: { t: 42, h: 24, r: 21, a: 7 } },
+  italie: { label: "Italie", ratios: { t: 42, h: 31, r: 21, a: 6 } },
+  uk: { label: "Royaume-Uni (ferry, tunnel)", ratios: { t: 38, h: 23, r: 20, a: 7 } },
+  irlande: { label: "Irlande (ferry)", ratios: { t: 48, h: 29, r: 25, a: 8 } },
+  "europe-est": { label: "Allemagne", ratios: { t: 31, h: 19, r: 16, a: 6 } },
   "europe-centrale": {
     label: "Europe Centrale (Tchéquie, Pologne, Hongrie, Roumanie)",
-    ratios: { h: 29, r: 24, a: 9 },
-    kmSuggere: 2400,
+    ratios: { t: 47, h: 29, r: 24, a: 9 },
   },
-  lointain: { label: "Long courrier (avion, hors transport)", ratios: { h: 30, r: 19, a: 7 }, kmSuggere: 0 },
+  lointain: { label: "Long courrier (avion, hors transport)", ratios: { t: 0, h: 30, r: 19, a: 7 } },
 };
-
-// Gabarits de la flotte Festimove, du plus grand au plus petit. Sert uniquement à
-// déterminer combien de véhicules le groupe nécessite (et donc le coût transport total) —
-// aucune limite de disponibilité : un devis n'est jamais bloqué faute de véhicule.
-const CAPACITES_FLOTTE = [98, 63, 61, 57, 53, 43];
-
-type Allocation = { vehicules: number[]; places: number };
-
-// Nombre et taille des véhicules nécessaires pour "pax" personnes, à partir des gabarits
-// de la flotte, sans limite de disponibilité : on remplit d'abord au plus grand gabarit,
-// puis on complète avec le plus petit gabarit qui couvre le reste. Un devis n'est donc
-// jamais bloqué faute de véhicule.
-function allouerVehicules(pax: number, capacites: number[]): Allocation {
-  if (pax <= 0 || capacites.length === 0) return { vehicules: [], places: 0 };
-  const capMax = Math.max(...capacites);
-  const nbPleins = Math.floor(pax / capMax);
-  const reste = pax - nbPleins * capMax;
-  const vehicules: number[] = Array(nbPleins).fill(capMax);
-  if (reste > 0) {
-    const capReste = capacites.filter((c) => c >= reste).sort((a, b) => a - b)[0] ?? capMax;
-    vehicules.push(capReste);
-  }
-  vehicules.sort((a, b) => b - a);
-  return { vehicules, places: vehicules.reduce((a, b) => a + b, 0) };
-}
 
 const ADMIN_PASSWORD_FLAG = "scolamove-admin";
 
@@ -98,8 +70,15 @@ declare global {
   }
 }
 
-// Un jour de programme, saisi en case dédiée plutôt qu'en texte libre.
-type JourProgramme = { titre: string; texte: string };
+// Une ligne du tableau "Détail des visites" saisie à la main dans le formulaire et
+// reprise telle quelle dans le PDF (une entrée de monument / activité payante).
+type VisiteLigne = {
+  id: string;
+  jour: string;
+  libelle: string;
+  prixEleve: number;
+  prixAdulte: number;
+};
 
 type SavedDevisData = {
   zone: ZoneKey | "";
@@ -110,13 +89,7 @@ type SavedDevisData = {
   confort: "0.85" | "1" | "1.25";
   visites: number;
   marge: number;
-  km: number;
-  tarifKm: number;
-  tarifExcursion: number;
-  tarifImmobilisation: number;
-  joursExcursion: number;
-  joursImmobilisation: number;
-  baremeVente: boolean;
+  sousTraite: boolean;
   margeTransport: number;
   ratios: ZoneRatios;
   assuranceCheck: boolean;
@@ -138,9 +111,13 @@ type SavedDevisData = {
   reference: string;
   dateVoyage: string;
   programme: string;
-  joursProgramme: JourProgramme[];
   prixParVisite: number;
   selectedSejourId: string;
+  // Optionnels : devis enregistrés avant l'ajout du bloc "Détail des visites".
+  detailVisites?: VisiteLigne[];
+  detailVisitesAffiche?: boolean;
+  lignesVierges?: number;
+  noteVisites?: string;
 };
 
 type SavedDevisRow = {
@@ -186,28 +163,15 @@ export default function DevisExpressPage() {
   const [visites, setVisites] = useState(0);
   const [marge, setMarge] = useState(5);
 
-  // --- Transport : barème au kilomètre + à la journée, par véhicule engagé ---
-  const [km, setKm] = useState(0);
-  const [tarifKm, setTarifKm] = useState(2.5);
-  const [tarifExcursion, setTarifExcursion] = useState(1000);
-  const [tarifImmobilisation, setTarifImmobilisation] = useState(500);
-  const [joursExcursion, setJoursExcursion] = useState(0);
-  const [joursImmobilisation, setJoursImmobilisation] = useState(0);
-  // Coché : le barème ci-dessus est déjà un prix de vente, il part tel quel dans le devis.
-  // Décoché : c'est un coût, la marge transport s'y ajoute.
-  const [baremeVente, setBaremeVente] = useState(true);
-  const [margeTransport, setMargeTransport] = useState(25);
+  // --- Transport ---
+  const [sousTraite, setSousTraite] = useState(false);
+  const [margeTransport, setMargeTransport] = useState(20);
 
   // --- Ratios ajustables (seedés par zone) ---
-  const emptyRatios: ZoneRatios = { h: 0, r: 0, a: 0 };
+  const emptyRatios: ZoneRatios = { t: 0, h: 0, r: 0, a: 0 };
   const [ratios, setRatios] = useState<ZoneRatios>(emptyRatios);
   useEffect(() => {
-    if (zone) {
-      setRatios(ZONES[zone].ratios);
-      setKm((prev) => (prev === 0 ? ZONES[zone].kmSuggere : prev));
-    } else {
-      setRatios(emptyRatios);
-    }
+    setRatios(zone ? ZONES[zone].ratios : emptyRatios);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [zone]);
 
@@ -241,44 +205,16 @@ export default function DevisExpressPage() {
   }, []);
 
   // --- Programme & OCR ---
-  // Le programme se saisit jour par jour, en cases dédiées. "programme" (texte "JOUR X :
-  // titre\ntexte") reste calculé à partir de ces cases : c'est ce texte qu'utilisent le PDF,
-  // l'estimation du budget visites et l'import/OCR (voir parseProgrammeTexte plus bas).
-  const [joursProgramme, setJoursProgramme] = useState<JourProgramme[]>([]);
-  const programme = useMemo(
-    () =>
-      joursProgramme
-        .map((j, i) => `JOUR ${i + 1}${j.titre ? ` : ${j.titre}` : ""}${j.texte ? `\n${j.texte}` : ""}`)
-        .join("\n\n"),
-    [joursProgramme]
-  );
-
-  function updateJourProgramme(index: number, champ: "titre" | "texte", valeur: string) {
-    setJoursProgramme((prev) => prev.map((j, i) => (i === index ? { ...j, [champ]: valeur } : j)));
-  }
-  function ajouterJourProgramme() {
-    setJoursProgramme((prev) => [...prev, { titre: "", texte: "" }]);
-  }
-  function supprimerJourProgramme(index: number) {
-    setJoursProgramme((prev) => prev.filter((_, i) => i !== index));
-  }
-  // Convertit un texte "JOUR X : titre\ntexte" (blocs séparés par une ligne vide) en cases —
-  // utilisé pour l'import OCR et pour recharger les anciens devis enregistrés avant ce
-  // découpage en cases.
-  function parseProgrammeTexte(texte: string): JourProgramme[] {
-    const trimmed = texte.trim();
-    if (!trimmed) return [];
-    const blocks = trimmed.split(/\n\s*\n/).map((b) => b.trim()).filter(Boolean);
-    return blocks.map((block) => {
-      const lignes = block.split("\n");
-      const m = (lignes[0] || "").match(/^JOUR\s*\d+\s*:?\s*(.*)$/i);
-      if (m) return { titre: m[1].trim(), texte: lignes.slice(1).join("\n").trim() };
-      return { titre: "", texte: block };
-    });
-  }
-
+  const [programme, setProgramme] = useState("");
   const [prixParVisite, setPrixParVisite] = useState(6);
   const [estimateMsg, setEstimateMsg] = useState<string | null>(null);
+
+  // --- Détail des visites (saisie manuelle, reprise dans le PDF) ---
+  const [detailVisites, setDetailVisites] = useState<VisiteLigne[]>([]);
+  const [detailVisitesAffiche, setDetailVisitesAffiche] = useState(true);
+  const [lignesVierges, setLignesVierges] = useState(4);
+  const [noteVisites, setNoteVisites] = useState("");
+  const [detailVisitesMsg, setDetailVisitesMsg] = useState("");
   const [ocrStatus, setOcrStatus] = useState("");
   const [ocrRawText, setOcrRawText] = useState("");
   const [copyState, setCopyState] = useState("");
@@ -352,9 +288,12 @@ export default function DevisExpressPage() {
     const s = catalogueSejours.find((x) => x.id === sejourId);
     if (!s) return;
 
-    // Programme : une case par jour, reconstruite directement à partir des vraies données
-    // du site, sans passer par l'OCR.
-    setJoursProgramme((s.program || []).map((p) => ({ titre: p.title || "", texte: p.text || "" })));
+    // Programme : reconstruit proprement au format "JOUR X : titre" à partir des vraies
+    // données du site, sans passer par l'OCR.
+    const programmeText = (s.program || [])
+      .map((p) => `${p.day || ""}${p.title ? ` : ${p.title}` : ""}\n${p.text || ""}`.trim())
+      .join("\n\n");
+    setProgramme(programmeText);
 
     // Durée : essaie d'extraire "X jours / Y nuits" depuis le texte du site.
     const mJ = (s.duration || "").match(/(\d+)\s*jour/i);
@@ -381,34 +320,23 @@ export default function DevisExpressPage() {
     const niveauFactor = parseFloat(confort);
     const groupFactor = pax < 20 ? 1.4 : pax < 40 ? 1.15 : pax < 60 ? 1.0 : 0.95;
 
-    // --- Transport : coût par véhicule pour tout le voyage ---
-    // km*tarifKm couvre le trajet aller-retour, quel que soit le nombre de jours de route.
-    // Les journées d'excursion et d'immobilisation sont celles où le car ne roule pas
-    // longue distance mais reste mobilisé (visites sur place, ou repos réglementaire du
-    // conducteur) — elles sont facturées à la journée, pas au kilomètre.
-    const baseVehicule =
-      km * tarifKm + joursExcursion * tarifExcursion + joursImmobilisation * tarifImmobilisation;
-    const alloc = allouerVehicules(pax, CAPACITES_FLOTTE);
-    const vehicules = alloc.vehicules;
-
-    // Barème déjà en prix de vente : part tel quel. Sinon, traité comme un coût, la marge
-    // transport s'y ajoute.
-    const transportGroupeBrut = vehicules.length * baseVehicule;
-    const transportGroupe = baremeVente
-      ? transportGroupeBrut
-      : transportGroupeBrut * (1 + margeTransport / 100);
-    const transportParPersonne = pax > 0 ? transportGroupe / pax : 0;
-
+    const coachBase = 43;
+    const transportFactor = coachBase / Math.max(pax, 1);
+    const transportTotal = ratios.t * Math.max(jours, 1) * transportFactor;
     const hebergTotal = ratios.h * nuits * niveauFactor * groupFactor;
     const joursPension = Math.max(nuits + 1, 1);
     const repasTotal = ratios.r * joursPension * niveauFactor;
     const assistTotal = ratios.a * Math.max(jours, 1);
     const visitesTotal = visites * joursPension;
 
+    const transportCost = transportTotal * (sousTraite ? 1 : 0.7);
+    const transportMargePct = sousTraite ? marge : margeTransport;
+    const transportWithMarge = transportCost * (1 + transportMargePct / 100);
+
     const restTotal = hebergTotal + repasTotal + assistTotal + visitesTotal;
     const restWithMarge = restTotal * (1 + marge / 100);
 
-    const avecMarge = transportParPersonne + restWithMarge;
+    const avecMarge = transportWithMarge + restWithMarge;
 
     const assuranceMontant = assuranceCheck
       ? Math.max((avecMarge * assurancePct) / 100, assuranceMin)
@@ -426,14 +354,14 @@ export default function DevisExpressPage() {
 
     return {
       pax,
-      vehicules,
-      placesVehicules: alloc.places,
-      transportGroupe,
-      transportParPersonne,
+      transportTotal,
       hebergTotal,
       repasTotal,
       assistTotal,
       visitesTotal,
+      transportCost,
+      transportMargePct,
+      transportWithMarge,
       avecMarge,
       assuranceMontant,
       taxeSejourTotal,
@@ -451,15 +379,9 @@ export default function DevisExpressPage() {
     jours,
     nuits,
     visites,
-    km,
-    tarifKm,
-    tarifExcursion,
-    tarifImmobilisation,
-    joursExcursion,
-    joursImmobilisation,
-    baremeVente,
-    margeTransport,
+    sousTraite,
     marge,
+    margeTransport,
     assuranceCheck,
     assurancePct,
     assuranceMin,
@@ -474,7 +396,7 @@ export default function DevisExpressPage() {
 
   function estimateVisites() {
     if (!programme.trim()) {
-      setEstimateMsg("Remplis d'abord le programme jour par jour ci-dessous.");
+      setEstimateMsg("Colle d'abord un programme dans le champ ci-dessus.");
       return;
     }
     const motsClefs =
@@ -509,6 +431,78 @@ export default function DevisExpressPage() {
     const budgetParJour = result.joursPension > 0 ? budgetTotal / result.joursPension : budgetTotal;
     setVisites(Number(budgetParJour.toFixed(2)));
     setEstimateMsg((prev) => (prev ? prev + " — appliqué ✓" : "Appliqué ✓"));
+  }
+
+  // --- Détail des visites : lignes saisies à la main ---------------------------
+  function addVisiteLigne() {
+    setDetailVisites((prev) => [
+      ...prev,
+      {
+        id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        jour: "",
+        libelle: "",
+        prixEleve: 0,
+        prixAdulte: 0,
+      },
+    ]);
+  }
+
+  function updateVisiteLigne(id: string, patch: Partial<VisiteLigne>) {
+    setDetailVisites((prev) => prev.map((l) => (l.id === id ? { ...l, ...patch } : l)));
+  }
+
+  function removeVisiteLigne(id: string) {
+    setDetailVisites((prev) => prev.filter((l) => l.id !== id));
+  }
+
+  // Pré-remplit un squelette de lignes à partir des jours détectés dans le programme,
+  // pour n'avoir plus qu'à taper le nom du monument et les deux tarifs.
+  function prefillDepuisProgramme() {
+    const jourRegex = /^\s*JOUR\s*(\d+)\s*[:\-–]?\s*(.*)$/i;
+    const lignes = programme
+      .split("\n")
+      .map((l) => l.match(jourRegex))
+      .filter((m): m is RegExpMatchArray => Boolean(m))
+      .map((m) => ({
+        id: `${Date.now()}-${m[1]}-${Math.random().toString(36).slice(2, 7)}`,
+        jour: `J${m[1]}`,
+        libelle: (m[2] || "").trim(),
+        prixEleve: 0,
+        prixAdulte: 0,
+      }));
+    if (lignes.length === 0) {
+      setDetailVisitesMsg("Aucun jour au format \"JOUR X\" trouvé dans le programme.");
+      setTimeout(() => setDetailVisitesMsg(""), 4000);
+      return;
+    }
+    setDetailVisites(lignes);
+    setDetailVisitesMsg(`${lignes.length} ligne(s) créée(s) depuis le programme. Complète les tarifs.`);
+    setTimeout(() => setDetailVisitesMsg(""), 4000);
+  }
+
+  // Totaux du bloc détaillé : tarif unitaire × effectif de la catégorie concernée.
+  const totalVisitesEleve = detailVisites.reduce((s, l) => s + (Number(l.prixEleve) || 0), 0);
+  const totalVisitesAdulte = detailVisites.reduce((s, l) => s + (Number(l.prixAdulte) || 0), 0);
+  const totalVisitesGroupe = totalVisitesEleve * eleves + totalVisitesAdulte * accomp;
+
+  // Reporte le détail saisi sur le champ "budget visites (€/jour/pers)" du calcul,
+  // pour que le prix du devis colle exactement au tableau imprimé.
+  function appliquerDetailAuBudget() {
+    if (detailVisites.length === 0) {
+      setDetailVisitesMsg("Ajoute d'abord au moins une ligne de visite.");
+      setTimeout(() => setDetailVisitesMsg(""), 4000);
+      return;
+    }
+    const pax = Math.max(eleves + accomp, 1);
+    const joursPension = Math.max(nuits + 1, 1);
+    const parJourParPers = totalVisitesGroupe / pax / joursPension;
+    setVisites(Number(parJourParPers.toFixed(2)));
+    setDetailVisitesMsg(
+      `${totalVisitesGroupe.toFixed(2)} € pour le groupe, soit ${parJourParPers.toFixed(
+        2
+      )} €/jour/personne appliqué au calcul ✓`
+    );
+    setTimeout(() => setDetailVisitesMsg(""), 5000);
   }
 
   async function handleFicheUpload(file: File) {
@@ -602,10 +596,11 @@ export default function DevisExpressPage() {
       }
 
       if (joursTrouves.length) {
-        const texteAssemble = joursTrouves
-          .map((j, i) => (usedFallback ? `JOUR ${i + 1}\n${j.trim()}` : j.trim()))
-          .join("\n\n");
-        setJoursProgramme(parseProgrammeTexte(texteAssemble));
+        setProgramme(
+          joursTrouves
+            .map((j, i) => (usedFallback ? `JOUR ${i + 1}\n${j.trim()}` : j.trim()))
+            .join("\n\n")
+        );
       }
       const mJours = text.match(/(\d+)\s*JOURS?/i);
       const mNuits = text.match(/(\d+)\s*NUITS?/i);
@@ -723,6 +718,43 @@ export default function DevisExpressPage() {
       letterSpacing: 0.6,
     },
     listItem: { fontSize: 9.5, lineHeight: 1.5, marginBottom: 3, color: "#444" },
+    // --- Tableau "Détail des visites" ---
+    visTable: { borderWidth: 1, borderColor: "#e2ddd0", marginBottom: 10 },
+    visHeadRow: { flexDirection: "row", backgroundColor: "#3d5a45" },
+    visHeadCell: { color: "#fff", fontFamily: "Helvetica-Bold", fontSize: 8.5, padding: 6 },
+    visRow: { flexDirection: "row", borderTopWidth: 1, borderTopColor: "#e2ddd0", minHeight: 20 },
+    visRowAlt: { backgroundColor: "#faf7f0" },
+    visCell: { fontSize: 9, padding: 6, color: "#444" },
+    visCellJour: { width: "10%", flexGrow: 0, flexShrink: 0 },
+    visCellLib: { flexGrow: 1, flexShrink: 1 },
+    visCellPrix: { width: "16%", flexGrow: 0, flexShrink: 0, textAlign: "right" },
+    visCellTotal: { width: "18%", flexGrow: 0, flexShrink: 0, textAlign: "right", fontFamily: "Helvetica-Bold" },
+    visTotalRow: { flexDirection: "row", borderTopWidth: 2, borderTopColor: "#3d5a45", backgroundColor: "#eef5e5" },
+    visTotalCell: { fontSize: 9.5, padding: 7, fontFamily: "Helvetica-Bold", color: "#3d5a45" },
+    visBlankLine: { flexDirection: "row", borderTopWidth: 1, borderTopColor: "#e2ddd0", height: 24 },
+    visBlankCell: { borderRightWidth: 1, borderRightColor: "#f0ece2" },
+    visRecapBox: {
+      borderWidth: 1,
+      borderColor: "#e2ddd0",
+      borderRadius: 4,
+      padding: 10,
+      marginTop: 4,
+      marginBottom: 12,
+      backgroundColor: "#faf7f0",
+    },
+    visRecapLine: { flexDirection: "row", justifyContent: "space-between", marginBottom: 4, fontSize: 9.5 },
+    visRecapStrong: { fontFamily: "Helvetica-Bold", color: "#3d5a45" },
+    visHint: { fontSize: 8.5, color: "#888", fontStyle: "italic", marginBottom: 8 },
+    visNote: { fontSize: 9.5, lineHeight: 1.5, color: "#444", marginBottom: 10 },
+    visFillBox: {
+      borderWidth: 1,
+      borderColor: "#e2ddd0",
+      borderStyle: "dashed",
+      borderRadius: 4,
+      padding: 10,
+      marginTop: 6,
+    },
+    visFillLine: { borderBottomWidth: 1, borderBottomColor: "#ded9cc", height: 22, marginBottom: 6 },
     signoff: { marginTop: 22, fontSize: 10 },
     signoffName: { fontFamily: "Helvetica-Bold", marginTop: 12, color: "#3d5a45" },
     legalFooter: {
@@ -750,11 +782,10 @@ export default function DevisExpressPage() {
     // Les repas trajet, s'ils sont inclus, sont fondus dans le forfait — pas de ligne à part.
     const sejourTotal = result.avecMarge - visitesAvecMarge + result.repasTrajetTotal;
     const logoUrl = logoDataUrl;
-    const nbVehicules = result.vehicules.length;
 
     const comprend = [
-      nbVehicules > 1
-        ? `Le transport en autocars de la flotte Festimove (${nbVehicules} véhicules), depuis votre établissement, aller et retour, et leur utilisation sur place pour le programme des visites`
+      sousTraite
+        ? "Le transport en autocar, depuis votre établissement, aller et retour, et son utilisation sur place pour le programme des visites"
         : "Le transport en autocar de la flotte Festimove, depuis votre établissement, aller et retour, et son utilisation sur place pour le programme des visites",
       "Les repas et l'hébergement des chauffeurs, ainsi que les frais de parking, autoroutes et péages",
       `L'hébergement en pension complète (${nuits} nuits)`,
@@ -939,6 +970,117 @@ export default function DevisExpressPage() {
             </Text>
           </Page>
         )}
+
+        {/* PAGE 4 — Détail des visites et tarifs + zone à compléter à la main */}
+        {detailVisitesAffiche && (
+          <Page size="A4" style={pdfStyles.page}>
+            <View style={pdfStyles.letterhead}>
+              {logoUrl ? <PdfImage src={logoUrl} style={{ width: 110, objectFit: "contain" }} /> : <Text style={pdfStyles.brand}>Scolamove</Text>}
+              <Text style={pdfStyles.coords}>Devis {refVal}</Text>
+            </View>
+
+            <Text style={pdfStyles.sectionTitle}>Détail des visites et tarifs d&apos;entrée</Text>
+            <Text style={pdfStyles.visHint}>
+              Tarifs d&apos;entrée par personne, communiqués à titre indicatif et susceptibles d&apos;évoluer.
+              Les réductions scolaires sont appliquées lorsque le monument les accorde.
+            </Text>
+
+            <View style={pdfStyles.visTable}>
+              <View style={pdfStyles.visHeadRow}>
+                <Text style={[pdfStyles.visHeadCell, pdfStyles.visCellJour]}>Jour</Text>
+                <Text style={[pdfStyles.visHeadCell, pdfStyles.visCellLib]}>Visite / activité</Text>
+                <Text style={[pdfStyles.visHeadCell, pdfStyles.visCellPrix]}>Élève</Text>
+                <Text style={[pdfStyles.visHeadCell, pdfStyles.visCellPrix]}>Adulte</Text>
+                <Text style={[pdfStyles.visHeadCell, pdfStyles.visCellTotal]}>Total groupe</Text>
+              </View>
+
+              {detailVisites.map((l, i) => {
+                const totalLigne = (Number(l.prixEleve) || 0) * eleves + (Number(l.prixAdulte) || 0) * accomp;
+                return (
+                  <View key={l.id} style={i % 2 === 1 ? [pdfStyles.visRow, pdfStyles.visRowAlt] : pdfStyles.visRow}>
+                    <Text style={[pdfStyles.visCell, pdfStyles.visCellJour]}>{l.jour}</Text>
+                    <Text style={[pdfStyles.visCell, pdfStyles.visCellLib]}>{l.libelle}</Text>
+                    <Text style={[pdfStyles.visCell, pdfStyles.visCellPrix]}>
+                      {(Number(l.prixEleve) || 0).toFixed(2)} €
+                    </Text>
+                    <Text style={[pdfStyles.visCell, pdfStyles.visCellPrix]}>
+                      {(Number(l.prixAdulte) || 0).toFixed(2)} €
+                    </Text>
+                    <Text style={[pdfStyles.visCell, pdfStyles.visCellTotal]}>{totalLigne.toFixed(2)} €</Text>
+                  </View>
+                );
+              })}
+
+              {/* Lignes vierges : ajout manuscrit d'une visite décidée après l'envoi du devis */}
+              {Array.from({ length: Math.max(lignesVierges, 0) }).map((_, i) => (
+                <View key={`blank-${i}`} style={pdfStyles.visBlankLine}>
+                  <View style={[pdfStyles.visCellJour, pdfStyles.visBlankCell]} />
+                  <View style={[pdfStyles.visCellLib, pdfStyles.visBlankCell]} />
+                  <View style={[pdfStyles.visCellPrix, pdfStyles.visBlankCell]} />
+                  <View style={[pdfStyles.visCellPrix, pdfStyles.visBlankCell]} />
+                  <View style={pdfStyles.visCellTotal} />
+                </View>
+              ))}
+
+              <View style={pdfStyles.visTotalRow}>
+                <Text style={[pdfStyles.visTotalCell, pdfStyles.visCellJour]}> </Text>
+                <Text style={[pdfStyles.visTotalCell, pdfStyles.visCellLib]}>
+                  Total ({eleves} élèves et {accomp} accompagnateurs)
+                </Text>
+                <Text style={[pdfStyles.visTotalCell, pdfStyles.visCellPrix]}>{totalVisitesEleve.toFixed(2)} €</Text>
+                <Text style={[pdfStyles.visTotalCell, pdfStyles.visCellPrix]}>{totalVisitesAdulte.toFixed(2)} €</Text>
+                <Text style={[pdfStyles.visTotalCell, pdfStyles.visCellTotal]}>{totalVisitesGroupe.toFixed(2)} €</Text>
+              </View>
+            </View>
+
+            <View style={pdfStyles.visRecapBox}>
+              <View style={pdfStyles.visRecapLine}>
+                <Text>Coût des visites par élève</Text>
+                <Text style={pdfStyles.visRecapStrong}>{totalVisitesEleve.toFixed(2)} €</Text>
+              </View>
+              <View style={pdfStyles.visRecapLine}>
+                <Text>Coût des visites par accompagnateur</Text>
+                <Text style={pdfStyles.visRecapStrong}>{totalVisitesAdulte.toFixed(2)} €</Text>
+              </View>
+              <View style={pdfStyles.visRecapLine}>
+                <Text>Nombre de jours de visite</Text>
+                <Text style={pdfStyles.visRecapStrong}>
+                  {new Set(detailVisites.map((l) => l.jour).filter(Boolean)).size || "—"}
+                </Text>
+              </View>
+              <View style={[pdfStyles.visRecapLine, { marginBottom: 0 }]}>
+                <Text style={pdfStyles.visRecapStrong}>Total des visites pour le groupe</Text>
+                <Text style={pdfStyles.visRecapStrong}>{totalVisitesGroupe.toFixed(2)} €</Text>
+              </View>
+            </View>
+
+            {noteVisites.trim() ? (
+              <>
+                <Text style={pdfStyles.sectionTitle}>Précisions sur les visites</Text>
+                {noteVisites.split("\n").map((line, i) => (
+                  <Text key={i} style={pdfStyles.visNote}>
+                    {line}
+                  </Text>
+                ))}
+              </>
+            ) : null}
+
+            <Text style={pdfStyles.sectionTitle}>Vos visites complémentaires (à compléter)</Text>
+            <Text style={pdfStyles.visHint}>
+              Notez ici les visites, ateliers ou activités que vous souhaitez ajouter au programme. Renvoyez-nous
+              cette page complétée et nous chiffrons les entrées correspondantes.
+            </Text>
+            <View style={pdfStyles.visFillBox}>
+              {Array.from({ length: 8 }).map((_, i) => (
+                <View key={`fill-${i}`} style={pdfStyles.visFillLine} />
+              ))}
+            </View>
+
+            <Text style={pdfStyles.legalFooter}>
+              Scolamove — Agence de voyages scolaires · Ce document est une estimation non contractuelle établie à titre indicatif.
+            </Text>
+          </Page>
+        )}
       </Document>
     );
   }
@@ -953,13 +1095,7 @@ export default function DevisExpressPage() {
       confort,
       visites,
       marge,
-      km,
-      tarifKm,
-      tarifExcursion,
-      tarifImmobilisation,
-      joursExcursion,
-      joursImmobilisation,
-      baremeVente,
+      sousTraite,
       margeTransport,
       ratios,
       assuranceCheck,
@@ -981,9 +1117,12 @@ export default function DevisExpressPage() {
       reference,
       dateVoyage,
       programme,
-      joursProgramme,
       prixParVisite,
       selectedSejourId,
+      detailVisites,
+      detailVisitesAffiche,
+      lignesVierges,
+      noteVisites,
     };
   }
 
@@ -1097,15 +1236,8 @@ export default function DevisExpressPage() {
     setConfort(d.confort);
     setVisites(d.visites);
     setMarge(d.marge);
-    // Anciens devis (avant le passage au barème km/jour) : valeurs par défaut de repli.
-    setKm(d.km ?? 0);
-    setTarifKm(d.tarifKm ?? 2.5);
-    setTarifExcursion(d.tarifExcursion ?? 1000);
-    setTarifImmobilisation(d.tarifImmobilisation ?? 500);
-    setJoursExcursion(d.joursExcursion ?? 0);
-    setJoursImmobilisation(d.joursImmobilisation ?? 0);
-    setBaremeVente(d.baremeVente ?? true);
-    setMargeTransport(d.margeTransport ?? 25);
+    setSousTraite(d.sousTraite);
+    setMargeTransport(d.margeTransport);
     setRatios(d.ratios);
     setAssuranceCheck(d.assuranceCheck);
     setAssurancePct(d.assurancePct);
@@ -1125,8 +1257,12 @@ export default function DevisExpressPage() {
     setVille(d.ville);
     setReference(d.reference);
     setDateVoyage(d.dateVoyage);
-    setJoursProgramme(d.joursProgramme ?? parseProgrammeTexte(d.programme || ""));
+    setProgramme(d.programme);
     setPrixParVisite(d.prixParVisite);
+    setDetailVisites(d.detailVisites || []);
+    setDetailVisitesAffiche(d.detailVisitesAffiche ?? true);
+    setLignesVierges(d.lignesVierges ?? 4);
+    setNoteVisites(d.noteVisites || "");
     setSelectedSejourId(d.selectedSejourId || ""); // restaure le séjour lié à CE devis précisément
     setLoadedId(row.id);
     setSaveStatus(`Devis "${row.reference}" chargé ✓`);
@@ -1152,14 +1288,8 @@ export default function DevisExpressPage() {
     setConfort("1");
     setVisites(0);
     setMarge(5);
-    setKm(0);
-    setTarifKm(2.5);
-    setTarifExcursion(1000);
-    setTarifImmobilisation(500);
-    setJoursExcursion(0);
-    setJoursImmobilisation(0);
-    setBaremeVente(true);
-    setMargeTransport(25);
+    setSousTraite(false);
+    setMargeTransport(20);
     setRatios(emptyRatios);
     setAssuranceCheck(false);
     setAssurancePct(2.5);
@@ -1179,7 +1309,7 @@ export default function DevisExpressPage() {
     setVille("");
     setReference(genRef());
     setDateVoyage("");
-    setJoursProgramme([]);
+    setProgramme("");
     setPrixParVisite(6);
     setSelectedSejourId("");
     setSaveStatus("Nouveau devis — champs propres au voyage réinitialisés (marges conservées).");
@@ -1785,77 +1915,6 @@ Jérémy — Scolamove`;
               Accompagnateurs
               <input type="number" value={accomp} min={0} onChange={(e) => setAccomp(Number(e.target.value))} />
             </label>
-          </div>
-        </div>
-
-        {/* Transport */}
-        <div className="admin-panel de-panel transport">
-          <div className="de-panel-head">
-            <div className="de-panel-icon">🛣️</div>
-            <div>
-              <span className="de-eyebrow">Étape 3</span>
-              <h2>Transport</h2>
-            </div>
-          </div>
-          <div className="admin-form-grid two">
-            <label>
-              Kilomètres aller-retour
-              <input type="number" value={km} min={0} onChange={(e) => setKm(Number(e.target.value))} />
-            </label>
-            <label>
-              Prix au kilomètre (€)
-              <input type="number" value={tarifKm} step={0.05} min={0} onChange={(e) => setTarifKm(Number(e.target.value))} />
-            </label>
-            <label>
-              Journées d&apos;excursion
-              <input type="number" value={joursExcursion} min={0} onChange={(e) => setJoursExcursion(Number(e.target.value))} />
-            </label>
-            <label>
-              Journée d&apos;excursion (€)
-              <input type="number" value={tarifExcursion} step={50} min={0} onChange={(e) => setTarifExcursion(Number(e.target.value))} />
-            </label>
-            <label>
-              Journées d&apos;immobilisation
-              <input type="number" value={joursImmobilisation} min={0} onChange={(e) => setJoursImmobilisation(Number(e.target.value))} />
-            </label>
-            <label>
-              Journée d&apos;immobilisation (€)
-              <input type="number" value={tarifImmobilisation} step={50} min={0} onChange={(e) => setTarifImmobilisation(Number(e.target.value))} />
-            </label>
-          </div>
-          <p className="de-hint">
-            Transport = (km × prix au km + journées d&apos;excursion × tarif + journées
-            d&apos;immobilisation × tarif), pour chaque véhicule réellement nécessaire au groupe. Une journée d&apos;excursion est une journée où le
-            car reste sur place pour les visites ; une journée d&apos;immobilisation est une
-            journée où il ne roule pas longue distance mais reste mobilisé (repos réglementaire
-            du conducteur, par exemple). Les journées de route pure ne comptent qu&apos;au
-            kilomètre.
-          </p>
-
-          <label style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 12 }} className="de-check-row">
-            <input type="checkbox" checked={baremeVente} onChange={(e) => setBaremeVente(e.target.checked)} style={{ width: "auto" }} />
-            <span>Le barème ci-dessus est déjà un prix de vente</span>
-          </label>
-          {!baremeVente && (
-            <div className="admin-form-grid two" style={{ marginTop: 8 }}>
-              <label>
-                Marge transport (%)
-                <input type="number" value={margeTransport} min={0} onChange={(e) => setMargeTransport(Number(e.target.value))} />
-              </label>
-            </div>
-          )}
-        </div>
-
-        {/* Hébergement & restauration */}
-        <div className="admin-panel de-panel hebergement">
-          <div className="de-panel-head">
-            <div className="de-panel-icon">🏨</div>
-            <div>
-              <span className="de-eyebrow">Étape 4</span>
-              <h2>Hébergement &amp; restauration</h2>
-            </div>
-          </div>
-          <div className="admin-form-grid two">
             <label>
               Budget visites/activités (€/jour/pers)
               <input type="number" value={visites} min={0} onChange={(e) => setVisites(Number(e.target.value))} />
@@ -1865,11 +1924,31 @@ Jérémy — Scolamove`;
               <input type="number" value={marge} min={0} onChange={(e) => setMarge(Number(e.target.value))} />
             </label>
           </div>
+
+          <label style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 16 }} className="de-check-row" >
+            <input type="checkbox" checked={sousTraite} onChange={(e) => setSousTraite(e.target.checked)} style={{ width: "auto" }} />
+            <span>Sous-traiter le transport (autocariste tiers)</span>
+          </label>
+          <div className="admin-form-grid two" style={{ marginTop: 8 }}>
+            <label>
+              Marge transport {sousTraite ? "(sous-traité)" : "(flotte propre)"} (%)
+              <input type="number" value={margeTransport} min={0} onChange={(e) => setMargeTransport(Number(e.target.value))} />
+            </label>
+          </div>
+          <p className="de-hint">
+            Par défaut, transport assuré par la flotte Festimove : coût réel estimé à ~70% du tarif
+            marché, ratio calibré sur un car de 43 places (le plus petit de la flotte).
+          </p>
+
           <details style={{ marginTop: 16 }}>
             <summary style={{ cursor: "pointer", fontSize: 12, color: "#6b7268", textTransform: "uppercase" }}>
               Ajuster les ratios de base (€/jour/pers) ▾
             </summary>
             <div className="admin-form-grid two" style={{ marginTop: 10 }}>
+              <label>
+                Transport
+                <input type="number" value={ratios.t} onChange={(e) => setRatios({ ...ratios, t: Number(e.target.value) })} />
+              </label>
               <label>
                 Hébergement (€/nuit)
                 <input type="number" value={ratios.h} onChange={(e) => setRatios({ ...ratios, h: Number(e.target.value) })} />
@@ -1891,7 +1970,7 @@ Jérémy — Scolamove`;
           <div className="de-panel-head">
             <div className="de-panel-icon">💶</div>
             <div>
-              <span className="de-eyebrow">Étape 5</span>
+              <span className="de-eyebrow">Étape 3</span>
               <h2>Options tarifaires (hors forfait)</h2>
             </div>
           </div>
@@ -1981,53 +2060,10 @@ Jérémy — Scolamove`;
           {sejourImportMsg && <p className="de-estimate-msg">{sejourImportMsg}</p>}
 
           <div style={{ marginTop: 16, paddingTop: 16, borderTop: "1px dashed var(--line)" }}>
-            <span style={{ display: "block", marginBottom: 10, fontSize: 13, fontWeight: 600, color: "#3f4438" }}>
-              Ou remplis le programme jour par jour
-            </span>
-            {joursProgramme.length === 0 && (
-              <p className="de-hint">
-                Aucun jour pour l&apos;instant. Importe un séjour ci-dessus, ou ajoute des jours à la main.
-              </p>
-            )}
-            {joursProgramme.map((j, i) => (
-              <div
-                key={i}
-                style={{ border: "1px solid var(--line)", borderRadius: 8, padding: 12, marginBottom: 10 }}
-              >
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-                  <strong style={{ fontSize: 13 }}>Jour {i + 1}</strong>
-                  <button
-                    type="button"
-                    onClick={() => supprimerJourProgramme(i)}
-                    className="de-btn de-btn-outline"
-                    style={{ padding: "2px 10px", fontSize: 12 }}
-                  >
-                    Supprimer ce jour
-                  </button>
-                </div>
-                <label>
-                  Titre du jour
-                  <input
-                    type="text"
-                    value={j.titre}
-                    placeholder="Ex : Cordoue"
-                    onChange={(e) => updateJourProgramme(i, "titre", e.target.value)}
-                  />
-                </label>
-                <label style={{ marginTop: 8 }}>
-                  Détail
-                  <textarea
-                    rows={3}
-                    value={j.texte}
-                    placeholder="Visite de..., déjeuner, dîner et nuit à..."
-                    onChange={(e) => updateJourProgramme(i, "texte", e.target.value)}
-                  />
-                </label>
-              </div>
-            ))}
-            <button type="button" onClick={ajouterJourProgramme} className="de-btn de-btn-outline">
-              + Ajouter un jour
-            </button>
+            <label>
+              Ou colle le programme jour par jour à la main (JOUR 1, JOUR 2...)
+              <textarea rows={8} value={programme} onChange={(e) => setProgramme(e.target.value)} placeholder={"JOUR 1 : Départ...\nJOUR 2 : Visite du site archéologique..."} />
+            </label>
           </div>
           <div className="admin-form-grid two" style={{ marginTop: 8 }}>
             <label>
@@ -2048,6 +2084,143 @@ Jérémy — Scolamove`;
               </button>
             </p>
           )}
+
+          {/* ---- Détail des visites : saisie manuelle reprise en page 4 du PDF ---- */}
+          <div style={{ marginTop: 18, paddingTop: 16, borderTop: "1px dashed #d8d3c4" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+              <strong style={{ fontSize: 14 }}>Détail des visites (page dédiée dans le PDF)</strong>
+              <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, margin: 0 }}>
+                <input
+                  type="checkbox"
+                  checked={detailVisitesAffiche}
+                  onChange={(e) => setDetailVisitesAffiche(e.target.checked)}
+                />
+                Inclure cette page dans le PDF
+              </label>
+            </div>
+
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 10 }}>
+              <button type="button" onClick={addVisiteLigne} className="de-btn de-btn-outline">
+                + Ajouter une visite
+              </button>
+              <button type="button" onClick={prefillDepuisProgramme} className="de-btn de-btn-outline">
+                Pré-remplir depuis le programme
+              </button>
+              <button type="button" onClick={appliquerDetailAuBudget} className="de-btn de-btn-outline">
+                Appliquer ce total au calcul du devis
+              </button>
+            </div>
+            {detailVisitesMsg && <p className="de-estimate-msg">{detailVisitesMsg}</p>}
+
+            {detailVisites.length > 0 && (
+              <div style={{ overflowX: "auto", marginTop: 12 }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                  <thead>
+                    <tr style={{ textAlign: "left", borderBottom: "2px solid #d8d3c4" }}>
+                      <th style={{ padding: "6px 4px", width: 70 }}>Jour</th>
+                      <th style={{ padding: "6px 4px" }}>Visite / activité</th>
+                      <th style={{ padding: "6px 4px", width: 100 }}>Élève (€)</th>
+                      <th style={{ padding: "6px 4px", width: 100 }}>Adulte (€)</th>
+                      <th style={{ padding: "6px 4px", width: 110, textAlign: "right" }}>Total groupe</th>
+                      <th style={{ padding: "6px 4px", width: 40 }} />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {detailVisites.map((l) => {
+                      const totalLigne = (Number(l.prixEleve) || 0) * eleves + (Number(l.prixAdulte) || 0) * accomp;
+                      return (
+                        <tr key={l.id} style={{ borderBottom: "1px solid #ece8dc" }}>
+                          <td style={{ padding: "4px" }}>
+                            <input
+                              type="text"
+                              value={l.jour}
+                              placeholder="J2"
+                              onChange={(e) => updateVisiteLigne(l.id, { jour: e.target.value })}
+                              style={{ width: "100%" }}
+                            />
+                          </td>
+                          <td style={{ padding: "4px" }}>
+                            <input
+                              type="text"
+                              value={l.libelle}
+                              placeholder="Mosquée-Cathédrale de Cordoue"
+                              onChange={(e) => updateVisiteLigne(l.id, { libelle: e.target.value })}
+                              style={{ width: "100%" }}
+                            />
+                          </td>
+                          <td style={{ padding: "4px" }}>
+                            <input
+                              type="number"
+                              step="0.01"
+                              value={l.prixEleve}
+                              onChange={(e) => updateVisiteLigne(l.id, { prixEleve: Number(e.target.value) })}
+                              style={{ width: "100%" }}
+                            />
+                          </td>
+                          <td style={{ padding: "4px" }}>
+                            <input
+                              type="number"
+                              step="0.01"
+                              value={l.prixAdulte}
+                              onChange={(e) => updateVisiteLigne(l.id, { prixAdulte: Number(e.target.value) })}
+                              style={{ width: "100%" }}
+                            />
+                          </td>
+                          <td style={{ padding: "4px", textAlign: "right", fontWeight: 600 }}>
+                            {totalLigne.toFixed(2)} €
+                          </td>
+                          <td style={{ padding: "4px", textAlign: "center" }}>
+                            <button
+                              type="button"
+                              onClick={() => removeVisiteLigne(l.id)}
+                              title="Supprimer cette ligne"
+                              style={{ border: "none", background: "none", cursor: "pointer", color: "#c0392b", fontSize: 16 }}
+                            >
+                              ×
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                  <tfoot>
+                    <tr style={{ borderTop: "2px solid #d8d3c4", fontWeight: 700 }}>
+                      <td style={{ padding: "6px 4px" }} colSpan={2}>
+                        Total ({eleves} élèves, {accomp} adultes)
+                      </td>
+                      <td style={{ padding: "6px 4px" }}>{totalVisitesEleve.toFixed(2)} €</td>
+                      <td style={{ padding: "6px 4px" }}>{totalVisitesAdulte.toFixed(2)} €</td>
+                      <td style={{ padding: "6px 4px", textAlign: "right" }}>{totalVisitesGroupe.toFixed(2)} €</td>
+                      <td />
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            )}
+
+            <div className="admin-form-grid two" style={{ marginTop: 12 }}>
+              <label>
+                Lignes vierges à imprimer sous le tableau
+                <input
+                  type="number"
+                  min={0}
+                  max={12}
+                  value={lignesVierges}
+                  onChange={(e) => setLignesVierges(Number(e.target.value))}
+                />
+              </label>
+            </div>
+
+            <label style={{ marginTop: 8, display: "block" }}>
+              Précisions à afficher sous le tableau (facultatif)
+              <textarea
+                rows={3}
+                value={noteVisites}
+                onChange={(e) => setNoteVisites(e.target.value)}
+                placeholder={"Tarifs réduits sous réserve de présentation de la Carte Jeune Européenne.\nRéservation nominative obligatoire pour l'Alhambra."}
+              />
+            </label>
+          </div>
 
           <div style={{ marginTop: 18, paddingTop: 16, borderTop: "1px dashed #d8d3c4" }}>
             <label>
@@ -2085,13 +2258,7 @@ Jérémy — Scolamove`;
             {result.prixFerme.toFixed(0)} € <small>/ personne</small>
           </div>
           <div className="de-result-grid">
-            <div className="row">
-              <span>
-                Transport ({result.vehicules.length > 0 ? result.vehicules.join(" + ") + " places" : "aucun véhicule"}
-                {baremeVente ? "" : `, marge ${margeTransport}%`})
-              </span>
-              <span>{result.transportParPersonne.toFixed(2)} €</span>
-            </div>
+            <div className="row"><span>Transport {sousTraite ? "(sous-traité)" : "(flotte Festimove)"}, marge {result.transportMargePct}%</span><span>{result.transportWithMarge.toFixed(2)} €</span></div>
             <div className="row"><span>Hébergement ({nuits} nuits), marge {marge}%</span><span>{(result.hebergTotal * (1 + marge / 100)).toFixed(2)} €</span></div>
             <div className="row"><span>Pension complète ({jours} jours), marge {marge}%</span><span>{(result.repasTotal * (1 + marge / 100)).toFixed(2)} €</span></div>
             <div className="row"><span>Visites / activités, marge {marge}%</span><span>{(result.visitesTotal * (1 + marge / 100)).toFixed(2)} €</span></div>
