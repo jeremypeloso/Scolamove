@@ -98,6 +98,9 @@ declare global {
   }
 }
 
+// Un jour de programme, saisi en case dédiée plutôt qu'en texte libre.
+type JourProgramme = { titre: string; texte: string };
+
 type SavedDevisData = {
   zone: ZoneKey | "";
   jours: number;
@@ -135,6 +138,7 @@ type SavedDevisData = {
   reference: string;
   dateVoyage: string;
   programme: string;
+  joursProgramme: JourProgramme[];
   prixParVisite: number;
   selectedSejourId: string;
 };
@@ -237,7 +241,42 @@ export default function DevisExpressPage() {
   }, []);
 
   // --- Programme & OCR ---
-  const [programme, setProgramme] = useState("");
+  // Le programme se saisit jour par jour, en cases dédiées. "programme" (texte "JOUR X :
+  // titre\ntexte") reste calculé à partir de ces cases : c'est ce texte qu'utilisent le PDF,
+  // l'estimation du budget visites et l'import/OCR (voir parseProgrammeTexte plus bas).
+  const [joursProgramme, setJoursProgramme] = useState<JourProgramme[]>([]);
+  const programme = useMemo(
+    () =>
+      joursProgramme
+        .map((j, i) => `JOUR ${i + 1}${j.titre ? ` : ${j.titre}` : ""}${j.texte ? `\n${j.texte}` : ""}`)
+        .join("\n\n"),
+    [joursProgramme]
+  );
+
+  function updateJourProgramme(index: number, champ: "titre" | "texte", valeur: string) {
+    setJoursProgramme((prev) => prev.map((j, i) => (i === index ? { ...j, [champ]: valeur } : j)));
+  }
+  function ajouterJourProgramme() {
+    setJoursProgramme((prev) => [...prev, { titre: "", texte: "" }]);
+  }
+  function supprimerJourProgramme(index: number) {
+    setJoursProgramme((prev) => prev.filter((_, i) => i !== index));
+  }
+  // Convertit un texte "JOUR X : titre\ntexte" (blocs séparés par une ligne vide) en cases —
+  // utilisé pour l'import OCR et pour recharger les anciens devis enregistrés avant ce
+  // découpage en cases.
+  function parseProgrammeTexte(texte: string): JourProgramme[] {
+    const trimmed = texte.trim();
+    if (!trimmed) return [];
+    const blocks = trimmed.split(/\n\s*\n/).map((b) => b.trim()).filter(Boolean);
+    return blocks.map((block) => {
+      const lignes = block.split("\n");
+      const m = (lignes[0] || "").match(/^JOUR\s*\d+\s*:?\s*(.*)$/i);
+      if (m) return { titre: m[1].trim(), texte: lignes.slice(1).join("\n").trim() };
+      return { titre: "", texte: block };
+    });
+  }
+
   const [prixParVisite, setPrixParVisite] = useState(6);
   const [estimateMsg, setEstimateMsg] = useState<string | null>(null);
   const [ocrStatus, setOcrStatus] = useState("");
@@ -313,12 +352,9 @@ export default function DevisExpressPage() {
     const s = catalogueSejours.find((x) => x.id === sejourId);
     if (!s) return;
 
-    // Programme : reconstruit proprement au format "JOUR X : titre" à partir des vraies
-    // données du site, sans passer par l'OCR.
-    const programmeText = (s.program || [])
-      .map((p) => `${p.day || ""}${p.title ? ` : ${p.title}` : ""}\n${p.text || ""}`.trim())
-      .join("\n\n");
-    setProgramme(programmeText);
+    // Programme : une case par jour, reconstruite directement à partir des vraies données
+    // du site, sans passer par l'OCR.
+    setJoursProgramme((s.program || []).map((p) => ({ titre: p.title || "", texte: p.text || "" })));
 
     // Durée : essaie d'extraire "X jours / Y nuits" depuis le texte du site.
     const mJ = (s.duration || "").match(/(\d+)\s*jour/i);
@@ -438,7 +474,7 @@ export default function DevisExpressPage() {
 
   function estimateVisites() {
     if (!programme.trim()) {
-      setEstimateMsg("Colle d'abord un programme dans le champ ci-dessus.");
+      setEstimateMsg("Remplis d'abord le programme jour par jour ci-dessous.");
       return;
     }
     const motsClefs =
@@ -566,11 +602,10 @@ export default function DevisExpressPage() {
       }
 
       if (joursTrouves.length) {
-        setProgramme(
-          joursTrouves
-            .map((j, i) => (usedFallback ? `JOUR ${i + 1}\n${j.trim()}` : j.trim()))
-            .join("\n\n")
-        );
+        const texteAssemble = joursTrouves
+          .map((j, i) => (usedFallback ? `JOUR ${i + 1}\n${j.trim()}` : j.trim()))
+          .join("\n\n");
+        setJoursProgramme(parseProgrammeTexte(texteAssemble));
       }
       const mJours = text.match(/(\d+)\s*JOURS?/i);
       const mNuits = text.match(/(\d+)\s*NUITS?/i);
@@ -946,6 +981,7 @@ export default function DevisExpressPage() {
       reference,
       dateVoyage,
       programme,
+      joursProgramme,
       prixParVisite,
       selectedSejourId,
     };
@@ -1089,7 +1125,7 @@ export default function DevisExpressPage() {
     setVille(d.ville);
     setReference(d.reference);
     setDateVoyage(d.dateVoyage);
-    setProgramme(d.programme);
+    setJoursProgramme(d.joursProgramme ?? parseProgrammeTexte(d.programme || ""));
     setPrixParVisite(d.prixParVisite);
     setSelectedSejourId(d.selectedSejourId || ""); // restaure le séjour lié à CE devis précisément
     setLoadedId(row.id);
@@ -1143,7 +1179,7 @@ export default function DevisExpressPage() {
     setVille("");
     setReference(genRef());
     setDateVoyage("");
-    setProgramme("");
+    setJoursProgramme([]);
     setPrixParVisite(6);
     setSelectedSejourId("");
     setSaveStatus("Nouveau devis — champs propres au voyage réinitialisés (marges conservées).");
@@ -1945,10 +1981,53 @@ Jérémy — Scolamove`;
           {sejourImportMsg && <p className="de-estimate-msg">{sejourImportMsg}</p>}
 
           <div style={{ marginTop: 16, paddingTop: 16, borderTop: "1px dashed var(--line)" }}>
-            <label>
-              Ou colle le programme jour par jour à la main (JOUR 1, JOUR 2...)
-              <textarea rows={8} value={programme} onChange={(e) => setProgramme(e.target.value)} placeholder={"JOUR 1 : Départ...\nJOUR 2 : Visite du site archéologique..."} />
-            </label>
+            <span style={{ display: "block", marginBottom: 10, fontSize: 13, fontWeight: 600, color: "#3f4438" }}>
+              Ou remplis le programme jour par jour
+            </span>
+            {joursProgramme.length === 0 && (
+              <p className="de-hint">
+                Aucun jour pour l&apos;instant. Importe un séjour ci-dessus, ou ajoute des jours à la main.
+              </p>
+            )}
+            {joursProgramme.map((j, i) => (
+              <div
+                key={i}
+                style={{ border: "1px solid var(--line)", borderRadius: 8, padding: 12, marginBottom: 10 }}
+              >
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+                  <strong style={{ fontSize: 13 }}>Jour {i + 1}</strong>
+                  <button
+                    type="button"
+                    onClick={() => supprimerJourProgramme(i)}
+                    className="de-btn de-btn-outline"
+                    style={{ padding: "2px 10px", fontSize: 12 }}
+                  >
+                    Supprimer ce jour
+                  </button>
+                </div>
+                <label>
+                  Titre du jour
+                  <input
+                    type="text"
+                    value={j.titre}
+                    placeholder="Ex : Cordoue"
+                    onChange={(e) => updateJourProgramme(i, "titre", e.target.value)}
+                  />
+                </label>
+                <label style={{ marginTop: 8 }}>
+                  Détail
+                  <textarea
+                    rows={3}
+                    value={j.texte}
+                    placeholder="Visite de..., déjeuner, dîner et nuit à..."
+                    onChange={(e) => updateJourProgramme(i, "texte", e.target.value)}
+                  />
+                </label>
+              </div>
+            ))}
+            <button type="button" onClick={ajouterJourProgramme} className="de-btn de-btn-outline">
+              + Ajouter un jour
+            </button>
           </div>
           <div className="admin-form-grid two" style={{ marginTop: 8 }}>
             <label>
