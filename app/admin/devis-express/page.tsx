@@ -1918,6 +1918,7 @@ Jérémy — Scolamove`;
           .de-panel textarea,
           .de-panel input:not([type]) {
             font-family: inherit;
+            box-sizing: border-box;
             font-size: 14px;
             font-weight: 500;
             color: var(--navy);
@@ -2594,9 +2595,10 @@ Jérémy — Scolamove`;
               <label>
                 Colle le programme complet (une ligne « JOUR 1 : … » par journée)
                 <textarea
-                  rows={12}
+                  rows={14}
                   value={programme}
                   onChange={(e) => setProgramme(e.target.value)}
+                  style={{ display: "block", width: "100%", boxSizing: "border-box", minHeight: 320, resize: "vertical", lineHeight: 1.55 }}
                   placeholder={"JOUR 1 : Voyage aller\nDépart en autocar de votre établissement...\n\nJOUR 2 : Cordoue\nVisite de l'Alcázar..."}
                 />
               </label>
@@ -2618,6 +2620,9 @@ Jérémy — Scolamove`;
                       padding: 14,
                       marginBottom: 12,
                       background: "#fbfdff",
+                      boxSizing: "border-box",
+                      width: "100%",
+                      maxWidth: "100%",
                     }}
                   >
                     <div
@@ -2648,7 +2653,7 @@ Jérémy — Scolamove`;
                         value={j.titre}
                         placeholder="Titre de la journée (ex. Cordoue)"
                         onChange={(e) => updateJourProgramme(i, { titre: e.target.value })}
-                        style={{ flex: "1 1 220px" }}
+                        style={{ flex: "1 1 220px", minWidth: 0, boxSizing: "border-box" }}
                       />
                       <div style={{ display: "flex", gap: 4 }}>
                         <button
@@ -2680,10 +2685,18 @@ Jérémy — Scolamove`;
                       </div>
                     </div>
                     <textarea
-                      rows={3}
+                      rows={4}
                       value={j.texte}
                       placeholder="Détail de la journée : visites, repas, hébergement..."
                       onChange={(e) => updateJourProgramme(i, { texte: e.target.value })}
+                      style={{
+                        display: "block",
+                        width: "100%",
+                        boxSizing: "border-box",
+                        minHeight: 110,
+                        resize: "vertical",
+                        lineHeight: 1.5,
+                      }}
                     />
                   </div>
                 ))}
@@ -2854,9 +2867,10 @@ Jérémy — Scolamove`;
             <label style={{ marginTop: 8 }}>
               Précisions à afficher sous le tableau (facultatif)
               <textarea
-                rows={3}
+                rows={4}
                 value={noteVisites}
                 onChange={(e) => setNoteVisites(e.target.value)}
+                style={{ display: "block", width: "100%", boxSizing: "border-box", minHeight: 110, resize: "vertical" }}
                 placeholder={"Tarifs réduits sous réserve de présentation de la Carte Jeune Européenne.\nRéservation nominative obligatoire pour l'Alhambra."}
               />
             </label>
