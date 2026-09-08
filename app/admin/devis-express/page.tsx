@@ -1858,17 +1858,19 @@ Jérémy — Scolamove`;
             <h3 style={{ margin: "0 0 10px", fontSize: 13, fontWeight: 600, color: "#3f4438" }}>
               Flotte disponible
             </h3>
-            {flotte.map((v, i) => (
-              <label key={v.cap} style={{ marginBottom: 4 }}>
-                {v.cap} places — véhicules disponibles
-                <input
-                  type="number"
-                  value={v.qte}
-                  min={0}
-                  onChange={(e) => setFlotteChamp(i, Number(e.target.value))}
-                />
-              </label>
-            ))}
+            <div className="admin-form-grid three">
+              {flotte.map((v, i) => (
+                <label key={v.cap}>
+                  {v.cap} places
+                  <input
+                    type="number"
+                    value={v.qte}
+                    min={0}
+                    onChange={(e) => setFlotteChamp(i, Number(e.target.value))}
+                  />
+                </label>
+              ))}
+            </div>
             {!result.transportDisponible && (
               <p className="de-hint" style={{ color: "#b3452c" }}>
                 Aucune combinaison de véhicules disponibles ne couvre {result.pax} participants.
