@@ -49,19 +49,18 @@ const ZONES: Record<ZoneKey, { label: string; ratios: ZoneRatios; kmSuggere: num
   lointain: { label: "Long courrier (avion, hors transport)", ratios: { h: 30, r: 19, a: 7 }, kmSuggere: 0 },
 };
 
-// Flotte Festimove : un gabarit par ligne. "coef" multiplie le barème km/jour pour ce
-// gabarit (1 = même prix qu'un 43 places ; à monter si le grand gabarit consomme plus,
-// paie plus de péages, ou impose un second conducteur sur longue distance). "qte" est le
-// nombre de véhicules disponibles de ce gabarit.
-type VehiculeConfig = { cap: number; coef: number; qte: number };
+// Flotte Festimove : un gabarit par ligne, avec le nombre de véhicules disponibles de ce
+// gabarit. Tous les véhicules sont facturés au même barème km/jour ; la flotte sert
+// uniquement à déterminer combien de véhicules le groupe nécessite.
+type VehiculeConfig = { cap: number; qte: number };
 
 const FLOTTE_DEFAUT: VehiculeConfig[] = [
-  { cap: 43, coef: 1, qte: 2 },
-  { cap: 53, coef: 1, qte: 2 },
-  { cap: 57, coef: 1, qte: 2 },
-  { cap: 61, coef: 1, qte: 2 },
-  { cap: 63, coef: 1, qte: 2 },
-  { cap: 98, coef: 1, qte: 1 },
+  { cap: 43, qte: 2 },
+  { cap: 53, qte: 2 },
+  { cap: 57, qte: 2 },
+  { cap: 61, qte: 2 },
+  { cap: 63, qte: 2 },
+  { cap: 98, qte: 1 },
 ];
 
 type Allocation = { cout: number; vehicules: number[]; places: number };
@@ -226,8 +225,8 @@ export default function DevisExpressPage() {
   const [margeTransport, setMargeTransport] = useState(25);
   const [flotte, setFlotte] = useState<VehiculeConfig[]>(FLOTTE_DEFAUT);
 
-  function setFlotteChamp(index: number, champ: "coef" | "qte", valeur: number) {
-    setFlotte((prev) => prev.map((v, i) => (i === index ? { ...v, [champ]: valeur } : v)));
+  function setFlotteChamp(index: number, valeur: number) {
+    setFlotte((prev) => prev.map((v, i) => (i === index ? { ...v, qte: valeur } : v)));
   }
 
   // --- Ratios ajustables (seedés par zone) ---
@@ -381,7 +380,7 @@ export default function DevisExpressPage() {
     const niveauFactor = parseFloat(confort);
     const groupFactor = pax < 20 ? 1.4 : pax < 40 ? 1.15 : pax < 60 ? 1.0 : 0.95;
 
-    // --- Transport : coût par véhicule pour tout le voyage, avant coefficient de gabarit ---
+    // --- Transport : coût par véhicule pour tout le voyage ---
     // km*tarifKm couvre le trajet aller-retour, quel que soit le nombre de jours de route.
     // Les journées d'excursion et d'immobilisation sont celles où le car ne roule pas
     // longue distance mais reste mobilisé (visites sur place, ou repos réglementaire du
@@ -390,7 +389,7 @@ export default function DevisExpressPage() {
       km * tarifKm + joursExcursion * tarifExcursion + joursImmobilisation * tarifImmobilisation;
     const flotteAvecCout = flotte
       .filter((v) => v.qte > 0 && v.cap > 0)
-      .map((v) => ({ cap: v.cap, qte: v.qte, cout: v.coef * baseVehicule }));
+      .map((v) => ({ cap: v.cap, qte: v.qte, cout: baseVehicule }));
     const alloc = allouerVehicules(pax, flotteAvecCout);
     const vehicules = alloc.vehicules;
     const transportDisponible = alloc.cout !== Infinity;
@@ -1835,8 +1834,7 @@ Jérémy — Scolamove`;
           </div>
           <p className="de-hint">
             Transport = (km × prix au km + journées d&apos;excursion × tarif + journées
-            d&apos;immobilisation × tarif) × coefficient de gabarit, pour chaque véhicule
-            réellement nécessaire au groupe. Une journée d&apos;excursion est une journée où le
+            d&apos;immobilisation × tarif), pour chaque véhicule réellement nécessaire au groupe. Une journée d&apos;excursion est une journée où le
             car reste sur place pour les visites ; une journée d&apos;immobilisation est une
             journée où il ne roule pas longue distance mais reste mobilisé (repos réglementaire
             du conducteur, par exemple). Les journées de route pure ne comptent qu&apos;au
@@ -1861,27 +1859,15 @@ Jérémy — Scolamove`;
               Flotte disponible
             </h3>
             {flotte.map((v, i) => (
-              <div key={v.cap} className="admin-form-grid two" style={{ marginBottom: 4 }}>
-                <label>
-                  {v.cap} places — coefficient de gabarit
-                  <input
-                    type="number"
-                    value={v.coef}
-                    step={0.05}
-                    min={0.5}
-                    onChange={(e) => setFlotteChamp(i, "coef", Number(e.target.value))}
-                  />
-                </label>
-                <label>
-                  Véhicules disponibles
-                  <input
-                    type="number"
-                    value={v.qte}
-                    min={0}
-                    onChange={(e) => setFlotteChamp(i, "qte", Number(e.target.value))}
-                  />
-                </label>
-              </div>
+              <label key={v.cap} style={{ marginBottom: 4 }}>
+                {v.cap} places — véhicules disponibles
+                <input
+                  type="number"
+                  value={v.qte}
+                  min={0}
+                  onChange={(e) => setFlotteChamp(i, Number(e.target.value))}
+                />
+              </label>
             ))}
             {!result.transportDisponible && (
               <p className="de-hint" style={{ color: "#b3452c" }}>
