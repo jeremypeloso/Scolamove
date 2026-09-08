@@ -126,6 +126,16 @@ type SavedDevisData = {
   baremePrixExcursion?: number;
   baremeJoursImmo?: number;
   baremePrixImmo?: number;
+  // Historique : instantanés des états précédents du devis, empilés à chaque mise à jour.
+  versions?: DevisVersion[];
+};
+
+// Une version archivée : l'état complet du devis au moment où il a été remplacé.
+type DevisVersion = {
+  savedAt: string;
+  prixFerme: number;
+  pax: number;
+  snapshot: SavedDevisData;
 };
 
 type SavedDevisRow = {
@@ -137,6 +147,7 @@ type SavedDevisRow = {
   prix_ferme: number | null;
   pax: number | null;
   created_at: string;
+  updated_at?: string | null;
   data: SavedDevisData;
 };
 
@@ -306,9 +317,9 @@ export default function DevisExpressPage() {
     setLoadingSaved(true);
     const { data, error } = await supabase
       .from("devis_express")
-      .select("id, reference, etablissement, ville, zone, prix_ferme, pax, created_at, data")
+      .select("id, reference, etablissement, ville, zone, prix_ferme, pax, created_at, updated_at, data")
       .order("created_at", { ascending: false })
-      .limit(50);
+      .limit(300);
     if (!error && data) {
       setSavedDevis(data as SavedDevisRow[]);
     } else if (error) {
@@ -1335,6 +1346,26 @@ export default function DevisExpressPage() {
   async function handleSaveDevis() {
     setSaveStatus("Enregistrement...");
     const refVal = reference;
+
+    // Sur une mise à jour, l'état actuellement en base part à l'archive avant d'être écrasé,
+    // pour garder la trace de toutes les versions successives d'un même devis.
+    let versions: DevisVersion[] = [];
+    if (loadedId) {
+      const enBase = savedDevis.find((r) => r.id === loadedId);
+      if (enBase?.data) {
+        const { versions: anciennes, ...snapshot } = enBase.data;
+        versions = [
+          ...(anciennes || []),
+          {
+            savedAt: enBase.updated_at || enBase.created_at,
+            prixFerme: Number(enBase.prix_ferme) || 0,
+            pax: Number(enBase.pax) || 0,
+            snapshot: snapshot as SavedDevisData,
+          },
+        ].slice(-30); // on garde les 30 dernières versions
+      }
+    }
+
     const payload = {
       reference: refVal,
       etablissement: etablissement || null,
@@ -1342,7 +1373,7 @@ export default function DevisExpressPage() {
       zone,
       prix_ferme: result.prixFerme,
       pax: result.pax,
-      data: { ...buildSavedData(), reference: refVal },
+      data: { ...buildSavedData(), reference: refVal, versions },
       updated_at: new Date().toISOString(),
     };
 
@@ -1375,8 +1406,29 @@ export default function DevisExpressPage() {
     setTimeout(() => setSaveStatus(""), 6000);
   }
 
-  function handleLoadDevis(row: SavedDevisRow) {
-    const d = row.data;
+  // --- Arborescence de la barre latérale : Année > Établissement (contact) > versions ---
+  const arborescenceDevis = useMemo(() => {
+    const annees = new Map<string, Map<string, SavedDevisRow[]>>();
+    savedDevis.forEach((row) => {
+      const annee = new Date(row.created_at).getFullYear().toString();
+      const contact = row.data?.teacherName?.trim();
+      const dossier = [row.etablissement || "Établissement non renseigné", contact].filter(Boolean).join(" — ");
+      if (!annees.has(annee)) annees.set(annee, new Map());
+      const parEtab = annees.get(annee)!;
+      if (!parEtab.has(dossier)) parEtab.set(dossier, []);
+      parEtab.get(dossier)!.push(row);
+    });
+    return [...annees.entries()]
+      .sort((a, b) => b[0].localeCompare(a[0]))
+      .map(([annee, parEtab]) => ({
+        annee,
+        dossiers: [...parEtab.entries()]
+          .sort((a, b) => a[0].localeCompare(b[0]))
+          .map(([nom, rows]) => ({ nom, rows })),
+      }));
+  }, [savedDevis]);
+
+  function applySavedData(d: SavedDevisData) {
     setZone(d.zone);
     setJours(d.jours);
     setNuits(d.nuits);
@@ -1420,9 +1472,24 @@ export default function DevisExpressPage() {
     setLignesVierges(d.lignesVierges ?? 4);
     setNoteVisites(d.noteVisites || "");
     setSelectedSejourId(d.selectedSejourId || ""); // restaure le séjour lié à CE devis précisément
+  }
+
+  function handleLoadDevis(row: SavedDevisRow) {
+    applySavedData(row.data);
     setLoadedId(row.id);
     setSaveStatus(`Devis "${row.reference}" chargé ✓`);
     setTimeout(() => setSaveStatus(""), 2500);
+  }
+
+  // Charge une version archivée : le devis reste rattaché à sa ligne, donc réenregistrer
+  // crée une nouvelle version au lieu d'écraser l'historique.
+  function handleLoadVersion(row: SavedDevisRow, version: DevisVersion) {
+    applySavedData(version.snapshot);
+    setLoadedId(row.id);
+    setSaveStatus(
+      `Version du ${new Date(version.savedAt).toLocaleString("fr-FR")} chargée — enregistrer créera une nouvelle version ✓`
+    );
+    setTimeout(() => setSaveStatus(""), 5000);
   }
 
   async function handleDeleteDevis(id: string) {
@@ -1579,7 +1646,7 @@ Jérémy — Scolamove`;
     <main className="admin-shell">
       <Script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js" strategy="lazyOnload" />
 
-      <aside className="admin-sidebar">
+      <aside className="admin-sidebar de-sidebar">
         <div className="admin-brand">
           Scolamove
           <span>Devis Express</span>
@@ -1590,12 +1657,229 @@ Jérémy — Scolamove`;
             Voir le site
           </a>
         </nav>
+
+        <div className="de-tree">
+          <div className="de-tree-head">
+            <span>Devis enregistrés</span>
+            <button type="button" onClick={handleNewDevis} title="Nouveau devis vierge">
+              +
+            </button>
+          </div>
+
+          {loadingSaved ? (
+            <p className="de-tree-empty">Chargement...</p>
+          ) : arborescenceDevis.length === 0 ? (
+            <p className="de-tree-empty">Aucun devis enregistré.</p>
+          ) : (
+            arborescenceDevis.map((an) => (
+              <details key={an.annee} open className="de-tree-year">
+                <summary>
+                  📁 {an.annee}
+                  <span className="de-tree-count">{an.dossiers.length}</span>
+                </summary>
+
+                {an.dossiers.map((dossier) => (
+                  <details key={dossier.nom} className="de-tree-folder">
+                    <summary title={dossier.nom}>📂 {dossier.nom}</summary>
+
+                    {dossier.rows.map((row) => {
+                      const versions = row.data?.versions || [];
+                      const dateCourante = row.updated_at || row.created_at;
+                      return (
+                        <div key={row.id} className="de-tree-devis">
+                          <div className="de-tree-ref">
+                            <span>{row.reference}</span>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteDevis(row.id)}
+                              title="Supprimer ce devis et son historique"
+                            >
+                              ×
+                            </button>
+                          </div>
+
+                          <button
+                            type="button"
+                            className={`de-tree-version courante ${row.id === loadedId ? "active" : ""}`}
+                            onClick={() => handleLoadDevis(row)}
+                          >
+                            <span className="de-tree-version-label">
+                              v{versions.length + 1} · actuelle
+                            </span>
+                            <span className="de-tree-version-date">
+                              {new Date(dateCourante).toLocaleString("fr-FR", {
+                                day: "2-digit",
+                                month: "2-digit",
+                                year: "2-digit",
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}
+                              {row.prix_ferme ? ` · ${Number(row.prix_ferme).toFixed(0)} €/pers` : ""}
+                            </span>
+                          </button>
+
+                          {[...versions].reverse().map((v, i) => (
+                            <button
+                              key={`${row.id}-${v.savedAt}-${i}`}
+                              type="button"
+                              className="de-tree-version"
+                              onClick={() => handleLoadVersion(row, v)}
+                            >
+                              <span className="de-tree-version-label">v{versions.length - i}</span>
+                              <span className="de-tree-version-date">
+                                {new Date(v.savedAt).toLocaleString("fr-FR", {
+                                  day: "2-digit",
+                                  month: "2-digit",
+                                  year: "2-digit",
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                })}
+                                {v.prixFerme ? ` · ${v.prixFerme.toFixed(0)} €/pers` : ""}
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+                      );
+                    })}
+                  </details>
+                ))}
+              </details>
+            ))
+          )}
+        </div>
       </aside>
 
-      <section className="admin-content de-content" style={{ maxWidth: 960 }}>
+      <section className="admin-content de-content">
         <style jsx>{`
           .de-content {
             background: linear-gradient(180deg, #f4f9f2 0%, #f7f9fb 340px, transparent 340px);
+            max-width: none;
+            width: 100%;
+          }
+          .de-sidebar {
+            overflow-y: auto;
+            max-height: 100vh;
+            position: sticky;
+            top: 0;
+          }
+          .de-tree {
+            font-size: 12px;
+            color: #cfe0d8;
+          }
+          .de-tree-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 10.5px;
+            font-weight: 800;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: #8fb3a4;
+            margin-bottom: 10px;
+          }
+          .de-tree-head button {
+            background: rgba(255, 255, 255, 0.12);
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            width: 22px;
+            height: 22px;
+            cursor: pointer;
+            font-size: 15px;
+            line-height: 1;
+          }
+          .de-tree-empty {
+            color: #8fb3a4;
+            font-size: 11.5px;
+            margin: 0;
+          }
+          .de-tree-year > summary,
+          .de-tree-folder > summary {
+            cursor: pointer;
+            list-style: none;
+            padding: 5px 6px;
+            border-radius: 6px;
+            color: #eaf3ee;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+          }
+          .de-tree-year > summary {
+            font-weight: 800;
+            display: flex;
+            justify-content: space-between;
+            gap: 8px;
+          }
+          .de-tree-count {
+            background: rgba(255, 255, 255, 0.14);
+            border-radius: 999px;
+            padding: 0 7px;
+            font-size: 10.5px;
+          }
+          .de-tree-year > summary:hover,
+          .de-tree-folder > summary:hover {
+            background: rgba(255, 255, 255, 0.08);
+          }
+          .de-tree-folder {
+            margin-left: 10px;
+          }
+          .de-tree-folder > summary {
+            font-weight: 700;
+            font-size: 11.5px;
+            color: #d7ead7;
+          }
+          .de-tree-devis {
+            margin: 4px 0 8px 12px;
+            border-left: 1px solid rgba(255, 255, 255, 0.14);
+            padding-left: 8px;
+          }
+          .de-tree-ref {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 10.5px;
+            letter-spacing: 0.06em;
+            color: #8fb3a4;
+            padding: 2px 0;
+          }
+          .de-tree-ref button {
+            background: none;
+            border: none;
+            color: #e08e7d;
+            cursor: pointer;
+            font-size: 14px;
+            line-height: 1;
+          }
+          .de-tree-version {
+            display: block;
+            width: 100%;
+            text-align: left;
+            background: none;
+            border: none;
+            border-radius: 6px;
+            padding: 5px 7px;
+            cursor: pointer;
+            color: #cfe0d8;
+          }
+          .de-tree-version:hover {
+            background: rgba(255, 255, 255, 0.09);
+          }
+          .de-tree-version.active {
+            background: rgba(143, 214, 128, 0.22);
+          }
+          .de-tree-version-label {
+            display: block;
+            font-weight: 700;
+            font-size: 11.5px;
+            color: #fff;
+          }
+          .de-tree-version.courante .de-tree-version-label {
+            color: #b6e59a;
+          }
+          .de-tree-version-date {
+            display: block;
+            font-size: 10.5px;
+            color: #8fb3a4;
           }
           .de-hero {
             display: flex;
