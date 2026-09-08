@@ -28,7 +28,7 @@ type ZoneKey =
   | "lointain";
 
 // Le transport n'est plus dans ces ratios : il est calculé à part, au kilomètre et à la
-// journée, par véhicule réellement engagé (voir FLOTTE_DEFAUT et allouerVehicules ci-dessous).
+// journée, par véhicule réellement engagé (voir CAPACITES_FLOTTE et allouerVehicules ci-dessous).
 type ZoneRatios = { h: number; r: number; a: number };
 
 const ZONES: Record<ZoneKey, { label: string; ratios: ZoneRatios; kmSuggere: number }> = {
@@ -49,58 +49,29 @@ const ZONES: Record<ZoneKey, { label: string; ratios: ZoneRatios; kmSuggere: num
   lointain: { label: "Long courrier (avion, hors transport)", ratios: { h: 30, r: 19, a: 7 }, kmSuggere: 0 },
 };
 
-// Flotte Festimove : un gabarit par ligne, avec le nombre de véhicules disponibles de ce
-// gabarit. Tous les véhicules sont facturés au même barème km/jour ; la flotte sert
-// uniquement à déterminer combien de véhicules le groupe nécessite.
-type VehiculeConfig = { cap: number; qte: number };
+// Gabarits de la flotte Festimove, du plus grand au plus petit. Sert uniquement à
+// déterminer combien de véhicules le groupe nécessite (et donc le coût transport total) —
+// aucune limite de disponibilité : un devis n'est jamais bloqué faute de véhicule.
+const CAPACITES_FLOTTE = [98, 63, 61, 57, 53, 43];
 
-const FLOTTE_DEFAUT: VehiculeConfig[] = [
-  { cap: 43, qte: 2 },
-  { cap: 53, qte: 2 },
-  { cap: 57, qte: 2 },
-  { cap: 61, qte: 2 },
-  { cap: 63, qte: 2 },
-  { cap: 98, qte: 1 },
-];
+type Allocation = { vehicules: number[]; places: number };
 
-type Allocation = { cout: number; vehicules: number[]; places: number };
-
-// Combinaison de véhicules la moins chère qui couvre "pax" personnes, parmi les gabarits
-// et quantités disponibles. Programmation dynamique : pour chaque gabarit, on essaie
-// d'utiliser 0..qte véhicules de ce gabarit et on garde le total le moins cher par palier
-// de places couvertes.
-function allouerVehicules(pax: number, flotte: { cap: number; qte: number; cout: number }[]): Allocation {
-  if (pax <= 0) return { cout: 0, vehicules: [], places: 0 };
-  const actifs = flotte.filter((v) => v.qte > 0 && v.cap > 0);
-  const n = actifs.length;
-  const dp: number[][] = Array.from({ length: n + 1 }, () => new Array(pax + 1).fill(Infinity));
-  const pick: number[][] = Array.from({ length: n + 1 }, () => new Array(pax + 1).fill(0));
-  dp[0][0] = 0;
-  for (let i = 1; i <= n; i++) {
-    const v = actifs[i - 1];
-    for (let p = 0; p <= pax; p++) {
-      for (let k = 0; k <= v.qte; k++) {
-        const reste = Math.max(0, p - k * v.cap);
-        const c = dp[i - 1][reste];
-        if (c === Infinity) continue;
-        const total = c + k * v.cout;
-        if (total < dp[i][p] - 0.001) {
-          dp[i][p] = total;
-          pick[i][p] = k;
-        }
-      }
-    }
-  }
-  if (dp[n][pax] === Infinity) return { cout: Infinity, vehicules: [], places: 0 };
-  const vehicules: number[] = [];
-  let p = pax;
-  for (let i = n; i >= 1; i--) {
-    const k = pick[i][p];
-    for (let j = 0; j < k; j++) vehicules.push(actifs[i - 1].cap);
-    p = Math.max(0, p - k * actifs[i - 1].cap);
+// Nombre et taille des véhicules nécessaires pour "pax" personnes, à partir des gabarits
+// de la flotte, sans limite de disponibilité : on remplit d'abord au plus grand gabarit,
+// puis on complète avec le plus petit gabarit qui couvre le reste. Un devis n'est donc
+// jamais bloqué faute de véhicule.
+function allouerVehicules(pax: number, capacites: number[]): Allocation {
+  if (pax <= 0 || capacites.length === 0) return { vehicules: [], places: 0 };
+  const capMax = Math.max(...capacites);
+  const nbPleins = Math.floor(pax / capMax);
+  const reste = pax - nbPleins * capMax;
+  const vehicules: number[] = Array(nbPleins).fill(capMax);
+  if (reste > 0) {
+    const capReste = capacites.filter((c) => c >= reste).sort((a, b) => a - b)[0] ?? capMax;
+    vehicules.push(capReste);
   }
   vehicules.sort((a, b) => b - a);
-  return { cout: dp[n][pax], vehicules, places: vehicules.reduce((a, b) => a + b, 0) };
+  return { vehicules, places: vehicules.reduce((a, b) => a + b, 0) };
 }
 
 const ADMIN_PASSWORD_FLAG = "scolamove-admin";
@@ -144,7 +115,6 @@ type SavedDevisData = {
   joursImmobilisation: number;
   baremeVente: boolean;
   margeTransport: number;
-  flotte: VehiculeConfig[];
   ratios: ZoneRatios;
   assuranceCheck: boolean;
   assurancePct: number;
@@ -223,11 +193,6 @@ export default function DevisExpressPage() {
   // Décoché : c'est un coût, la marge transport s'y ajoute.
   const [baremeVente, setBaremeVente] = useState(true);
   const [margeTransport, setMargeTransport] = useState(25);
-  const [flotte, setFlotte] = useState<VehiculeConfig[]>(FLOTTE_DEFAUT);
-
-  function setFlotteChamp(index: number, valeur: number) {
-    setFlotte((prev) => prev.map((v, i) => (i === index ? { ...v, qte: valeur } : v)));
-  }
 
   // --- Ratios ajustables (seedés par zone) ---
   const emptyRatios: ZoneRatios = { h: 0, r: 0, a: 0 };
@@ -387,20 +352,15 @@ export default function DevisExpressPage() {
     // conducteur) — elles sont facturées à la journée, pas au kilomètre.
     const baseVehicule =
       km * tarifKm + joursExcursion * tarifExcursion + joursImmobilisation * tarifImmobilisation;
-    const flotteAvecCout = flotte
-      .filter((v) => v.qte > 0 && v.cap > 0)
-      .map((v) => ({ cap: v.cap, qte: v.qte, cout: baseVehicule }));
-    const alloc = allouerVehicules(pax, flotteAvecCout);
+    const alloc = allouerVehicules(pax, CAPACITES_FLOTTE);
     const vehicules = alloc.vehicules;
-    const transportDisponible = alloc.cout !== Infinity;
 
     // Barème déjà en prix de vente : part tel quel. Sinon, traité comme un coût, la marge
     // transport s'y ajoute.
-    const transportGroupe = transportDisponible
-      ? baremeVente
-        ? alloc.cout
-        : alloc.cout * (1 + margeTransport / 100)
-      : 0;
+    const transportGroupeBrut = vehicules.length * baseVehicule;
+    const transportGroupe = baremeVente
+      ? transportGroupeBrut
+      : transportGroupeBrut * (1 + margeTransport / 100);
     const transportParPersonne = pax > 0 ? transportGroupe / pax : 0;
 
     const hebergTotal = ratios.h * nuits * niveauFactor * groupFactor;
@@ -430,7 +390,6 @@ export default function DevisExpressPage() {
 
     return {
       pax,
-      transportDisponible,
       vehicules,
       placesVehicules: alloc.places,
       transportGroupe,
@@ -464,7 +423,6 @@ export default function DevisExpressPage() {
     joursImmobilisation,
     baremeVente,
     margeTransport,
-    flotte,
     marge,
     assuranceCheck,
     assurancePct,
@@ -968,7 +926,6 @@ export default function DevisExpressPage() {
       joursImmobilisation,
       baremeVente,
       margeTransport,
-      flotte,
       ratios,
       assuranceCheck,
       assurancePct,
@@ -1113,7 +1070,6 @@ export default function DevisExpressPage() {
     setJoursImmobilisation(d.joursImmobilisation ?? 0);
     setBaremeVente(d.baremeVente ?? true);
     setMargeTransport(d.margeTransport ?? 25);
-    setFlotte(d.flotte ?? FLOTTE_DEFAUT);
     setRatios(d.ratios);
     setAssuranceCheck(d.assuranceCheck);
     setAssurancePct(d.assurancePct);
@@ -1168,7 +1124,6 @@ export default function DevisExpressPage() {
     setJoursImmobilisation(0);
     setBaremeVente(true);
     setMargeTransport(25);
-    setFlotte(FLOTTE_DEFAUT);
     setRatios(emptyRatios);
     setAssuranceCheck(false);
     setAssurancePct(2.5);
@@ -1853,31 +1808,6 @@ Jérémy — Scolamove`;
               </label>
             </div>
           )}
-
-          <div style={{ marginTop: 18, paddingTop: 16, borderTop: "1px dashed var(--line)" }}>
-            <h3 style={{ margin: "0 0 10px", fontSize: 13, fontWeight: 600, color: "#3f4438" }}>
-              Flotte disponible
-            </h3>
-            <div className="admin-form-grid three">
-              {flotte.map((v, i) => (
-                <label key={v.cap}>
-                  {v.cap} places
-                  <input
-                    type="number"
-                    value={v.qte}
-                    min={0}
-                    onChange={(e) => setFlotteChamp(i, Number(e.target.value))}
-                  />
-                </label>
-              ))}
-            </div>
-            {!result.transportDisponible && (
-              <p className="de-hint" style={{ color: "#b3452c" }}>
-                Aucune combinaison de véhicules disponibles ne couvre {result.pax} participants.
-                Augmente la disponibilité d&apos;un gabarit ci-dessus.
-              </p>
-            )}
-          </div>
         </div>
 
         {/* Hébergement & restauration */}
