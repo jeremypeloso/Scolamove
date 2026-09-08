@@ -1646,7 +1646,7 @@ Jérémy — Scolamove`;
     <main className="admin-shell">
       <Script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js" strategy="lazyOnload" />
 
-      <aside className="admin-sidebar de-sidebar">
+      <aside className="admin-sidebar" style={{ overflowY: "auto", maxHeight: "100vh", position: "sticky", top: 0 }}>
         <div className="admin-brand">
           Scolamove
           <span>Devis Express</span>
@@ -1658,63 +1658,160 @@ Jérémy — Scolamove`;
           </a>
         </nav>
 
-        <div className="de-tree">
-          <div className="de-tree-head">
-            <span>Devis enregistrés</span>
-            <button type="button" onClick={handleNewDevis} title="Nouveau devis vierge">
+        <div style={{ fontSize: 12, color: "#cfe0d8", overflowY: "auto" }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 8,
+              fontSize: 10.5,
+              fontWeight: 800,
+              letterSpacing: "0.12em",
+              textTransform: "uppercase",
+              color: "#8fb3a4",
+              marginBottom: 10,
+            }}
+          >
+            <span>Devis enregistr\u00e9s</span>
+            <button
+              type="button"
+              onClick={handleNewDevis}
+              title="Nouveau devis vierge"
+              style={{
+                background: "rgba(255,255,255,0.12)",
+                color: "#fff",
+                border: "none",
+                borderRadius: 6,
+                width: 22,
+                height: 22,
+                cursor: "pointer",
+                fontSize: 15,
+                lineHeight: 1,
+                flexShrink: 0,
+              }}
+            >
               +
             </button>
           </div>
 
           {loadingSaved ? (
-            <p className="de-tree-empty">Chargement...</p>
+            <p style={{ color: "#8fb3a4", fontSize: 11.5, margin: 0 }}>Chargement...</p>
           ) : arborescenceDevis.length === 0 ? (
-            <p className="de-tree-empty">Aucun devis enregistré.</p>
+            <p style={{ color: "#8fb3a4", fontSize: 11.5, margin: 0 }}>Aucun devis enregistr\u00e9.</p>
           ) : (
             arborescenceDevis.map((an) => (
-              <details key={an.annee} open className="de-tree-year">
-                <summary>
-                  📁 {an.annee}
-                  <span className="de-tree-count">{an.dossiers.length}</span>
+              <details key={an.annee} open style={{ marginBottom: 6 }}>
+                <summary
+                  style={{
+                    cursor: "pointer",
+                    padding: "5px 6px",
+                    borderRadius: 6,
+                    color: "#eaf3ee",
+                    fontWeight: 800,
+                  }}
+                >
+                  {an.annee}
+                  <span
+                    style={{
+                      background: "rgba(255,255,255,0.14)",
+                      borderRadius: 999,
+                      padding: "1px 7px",
+                      fontSize: 10.5,
+                      marginLeft: 8,
+                      fontWeight: 700,
+                    }}
+                  >
+                    {an.dossiers.length}
+                  </span>
                 </summary>
 
                 {an.dossiers.map((dossier) => (
-                  <details key={dossier.nom} className="de-tree-folder">
-                    <summary title={dossier.nom}>📂 {dossier.nom}</summary>
+                  <details key={dossier.nom} style={{ marginLeft: 12, marginTop: 4 }}>
+                    <summary
+                      title={dossier.nom}
+                      style={{
+                        cursor: "pointer",
+                        padding: "4px 6px",
+                        borderRadius: 6,
+                        color: "#d7ead7",
+                        fontWeight: 700,
+                        fontSize: 11.5,
+                      }}
+                    >
+                      {dossier.nom}
+                    </summary>
 
                     {dossier.rows.map((row) => {
                       const versions = row.data?.versions || [];
                       const dateCourante = row.updated_at || row.created_at;
+                      const fmt = (d: string) =>
+                        new Date(d).toLocaleString("fr-FR", {
+                          day: "2-digit",
+                          month: "2-digit",
+                          year: "2-digit",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        });
                       return (
-                        <div key={row.id} className="de-tree-devis">
-                          <div className="de-tree-ref">
+                        <div
+                          key={row.id}
+                          style={{
+                            margin: "4px 0 8px 12px",
+                            borderLeft: "1px solid rgba(255,255,255,0.14)",
+                            paddingLeft: 8,
+                          }}
+                        >
+                          <div
+                            style={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              alignItems: "center",
+                              fontSize: 10.5,
+                              letterSpacing: "0.06em",
+                              color: "#8fb3a4",
+                              padding: "2px 0",
+                            }}
+                          >
                             <span>{row.reference}</span>
                             <button
                               type="button"
                               onClick={() => handleDeleteDevis(row.id)}
                               title="Supprimer ce devis et son historique"
+                              style={{
+                                background: "none",
+                                border: "none",
+                                color: "#e08e7d",
+                                cursor: "pointer",
+                                fontSize: 14,
+                                lineHeight: 1,
+                              }}
                             >
-                              ×
+                              \u00d7
                             </button>
                           </div>
 
                           <button
                             type="button"
-                            className={`de-tree-version courante ${row.id === loadedId ? "active" : ""}`}
                             onClick={() => handleLoadDevis(row)}
+                            style={{
+                              display: "block",
+                              width: "100%",
+                              textAlign: "left",
+                              background:
+                                row.id === loadedId ? "rgba(143,214,128,0.22)" : "transparent",
+                              border: "none",
+                              borderRadius: 6,
+                              padding: "5px 7px",
+                              cursor: "pointer",
+                            }}
                           >
-                            <span className="de-tree-version-label">
-                              v{versions.length + 1} · actuelle
+                            <span style={{ display: "block", fontWeight: 700, fontSize: 11.5, color: "#b6e59a" }}>
+                              v{versions.length + 1} \u00b7 actuelle
                             </span>
-                            <span className="de-tree-version-date">
-                              {new Date(dateCourante).toLocaleString("fr-FR", {
-                                day: "2-digit",
-                                month: "2-digit",
-                                year: "2-digit",
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              })}
-                              {row.prix_ferme ? ` · ${Number(row.prix_ferme).toFixed(0)} €/pers` : ""}
+                            <span style={{ display: "block", fontSize: 10.5, color: "#8fb3a4" }}>
+                              {fmt(dateCourante)}
+                              {row.prix_ferme ? ` \u00b7 ${Number(row.prix_ferme).toFixed(0)} \u20ac/pers` : ""}
                             </span>
                           </button>
 
@@ -1722,19 +1819,24 @@ Jérémy — Scolamove`;
                             <button
                               key={`${row.id}-${v.savedAt}-${i}`}
                               type="button"
-                              className="de-tree-version"
                               onClick={() => handleLoadVersion(row, v)}
+                              style={{
+                                display: "block",
+                                width: "100%",
+                                textAlign: "left",
+                                background: "transparent",
+                                border: "none",
+                                borderRadius: 6,
+                                padding: "5px 7px",
+                                cursor: "pointer",
+                              }}
                             >
-                              <span className="de-tree-version-label">v{versions.length - i}</span>
-                              <span className="de-tree-version-date">
-                                {new Date(v.savedAt).toLocaleString("fr-FR", {
-                                  day: "2-digit",
-                                  month: "2-digit",
-                                  year: "2-digit",
-                                  hour: "2-digit",
-                                  minute: "2-digit",
-                                })}
-                                {v.prixFerme ? ` · ${v.prixFerme.toFixed(0)} €/pers` : ""}
+                              <span style={{ display: "block", fontWeight: 700, fontSize: 11.5, color: "#fff" }}>
+                                v{versions.length - i}
+                              </span>
+                              <span style={{ display: "block", fontSize: 10.5, color: "#8fb3a4" }}>
+                                {fmt(v.savedAt)}
+                                {v.prixFerme ? ` \u00b7 ${v.prixFerme.toFixed(0)} \u20ac/pers` : ""}
                               </span>
                             </button>
                           ))}
@@ -1747,6 +1849,7 @@ Jérémy — Scolamove`;
             ))
           )}
         </div>
+
       </aside>
 
       <section className="admin-content de-content">
@@ -1756,175 +1859,6 @@ Jérémy — Scolamove`;
             max-width: none;
             width: 100%;
           }
-          .de-sidebar {
-            overflow-y: auto;
-            max-height: 100vh;
-            position: sticky;
-            top: 0;
-          }
-          .de-tree {
-            font-size: 12px;
-            color: #cfe0d8;
-          }
-          .de-tree-head {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            font-size: 10.5px;
-            font-weight: 800;
-            letter-spacing: 0.12em;
-            text-transform: uppercase;
-            color: #8fb3a4;
-            margin-bottom: 10px;
-          }
-          .de-tree-head button {
-            background: rgba(255, 255, 255, 0.12);
-            color: #fff;
-            border: none;
-            border-radius: 6px;
-            width: 22px;
-            height: 22px;
-            cursor: pointer;
-            font-size: 15px;
-            line-height: 1;
-          }
-          .de-tree-empty {
-            color: #8fb3a4;
-            font-size: 11.5px;
-            margin: 0;
-          }
-          .de-tree-year > summary,
-          .de-tree-folder > summary {
-            cursor: pointer;
-            list-style: none;
-            padding: 5px 6px;
-            border-radius: 6px;
-            color: #eaf3ee;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-          }
-          .de-tree-year > summary {
-            font-weight: 800;
-            display: flex;
-            justify-content: space-between;
-            gap: 8px;
-          }
-          .de-tree-count {
-            background: rgba(255, 255, 255, 0.14);
-            border-radius: 999px;
-            padding: 0 7px;
-            font-size: 10.5px;
-          }
-          .de-tree-year > summary:hover,
-          .de-tree-folder > summary:hover {
-            background: rgba(255, 255, 255, 0.08);
-          }
-          .de-tree-folder {
-            margin-left: 10px;
-          }
-          .de-tree-folder > summary {
-            font-weight: 700;
-            font-size: 11.5px;
-            color: #d7ead7;
-          }
-          .de-tree-devis {
-            margin: 4px 0 8px 12px;
-            border-left: 1px solid rgba(255, 255, 255, 0.14);
-            padding-left: 8px;
-          }
-          .de-tree-ref {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 10.5px;
-            letter-spacing: 0.06em;
-            color: #8fb3a4;
-            padding: 2px 0;
-          }
-          .de-tree-ref button {
-            background: none;
-            border: none;
-            color: #e08e7d;
-            cursor: pointer;
-            font-size: 14px;
-            line-height: 1;
-          }
-          .de-tree-version {
-            display: block;
-            width: 100%;
-            text-align: left;
-            background: none;
-            border: none;
-            border-radius: 6px;
-            padding: 5px 7px;
-            cursor: pointer;
-            color: #cfe0d8;
-          }
-          .de-tree-version:hover {
-            background: rgba(255, 255, 255, 0.09);
-          }
-          .de-tree-version.active {
-            background: rgba(143, 214, 128, 0.22);
-          }
-          .de-tree-version-label {
-            display: block;
-            font-weight: 700;
-            font-size: 11.5px;
-            color: #fff;
-          }
-          .de-tree-version.courante .de-tree-version-label {
-            color: #b6e59a;
-          }
-          .de-tree-version-date {
-            display: block;
-            font-size: 10.5px;
-            color: #8fb3a4;
-          }
-          .de-hero {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 20px;
-            background: linear-gradient(120deg, #123c3f 0%, #1c5450 60%, #4f9d7a 130%);
-            border-radius: 22px;
-            padding: 26px 30px;
-            margin-bottom: 26px;
-            box-shadow: 0 16px 34px rgba(18, 60, 63, 0.28);
-          }
-          .de-hero-title {
-            color: #fff;
-          }
-          .de-hero-eyebrow {
-            display: inline-block;
-            font-size: 11px;
-            font-weight: 800;
-            letter-spacing: 0.14em;
-            text-transform: uppercase;
-            color: #d7f2c8;
-            background: rgba(255, 255, 255, 0.12);
-            padding: 4px 10px;
-            border-radius: 999px;
-            margin-bottom: 10px;
-          }
-          .de-hero h1 {
-            color: #fff;
-            font-size: 28px;
-            margin: 0;
-          }
-          .de-hero p {
-            color: #dcece2;
-            font-size: 13px;
-            margin: 8px 0 0;
-            max-width: 480px;
-          }
-          .de-hero-logo {
-            background: #fff;
-            border-radius: 14px;
-            padding: 10px 16px;
-            box-shadow: 0 8px 18px rgba(0, 0, 0, 0.18);
-          }
-
           .de-panel {
             margin-bottom: 22px;
             position: relative;
