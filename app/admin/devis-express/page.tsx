@@ -2089,11 +2089,22 @@ Jérémy — Scolamove`;
           <div style={{ marginTop: 18, paddingTop: 16, borderTop: "1px dashed #d8d3c4" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
               <strong style={{ fontSize: 14 }}>Détail des visites (page dédiée dans le PDF)</strong>
-              <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, margin: 0 }}>
+              <label
+                style={{
+                  display: "flex",
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 8,
+                  fontSize: 13,
+                  margin: 0,
+                  whiteSpace: "nowrap",
+                }}
+              >
                 <input
                   type="checkbox"
                   checked={detailVisitesAffiche}
                   onChange={(e) => setDetailVisitesAffiche(e.target.checked)}
+                  style={{ width: "auto", margin: 0 }}
                 />
                 Inclure cette page dans le PDF
               </label>
@@ -2211,7 +2222,7 @@ Jérémy — Scolamove`;
               </label>
             </div>
 
-            <label style={{ marginTop: 8, display: "block" }}>
+            <label style={{ marginTop: 8 }}>
               Précisions à afficher sous le tableau (facultatif)
               <textarea
                 rows={3}
