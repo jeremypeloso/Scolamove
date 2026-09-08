@@ -118,6 +118,14 @@ type SavedDevisData = {
   detailVisitesAffiche?: boolean;
   lignesVierges?: number;
   noteVisites?: string;
+  // Barème transport Festimove (optionnel : absent des devis antérieurs).
+  baremeCheck?: boolean;
+  baremeKm?: number;
+  baremePrixKm?: number;
+  baremeJoursExcursion?: number;
+  baremePrixExcursion?: number;
+  baremeJoursImmo?: number;
+  baremePrixImmo?: number;
 };
 
 type SavedDevisRow = {
@@ -144,6 +152,42 @@ type CatalogueSejour = {
   hidden: boolean;
 };
 
+// --- Programme jour par jour ------------------------------------------------
+// Le programme reste stocké sous forme de texte unique (c'est ce que lisent l'OCR,
+// l'import de séjour, la sauvegarde et le PDF), mais le formulaire l'édite sous
+// forme de sections "JOUR X" pour éviter la grosse zone de texte illisible.
+type JourProgramme = { titre: string; texte: string };
+
+function parseProgramme(txt: string): JourProgramme[] {
+  const jours: JourProgramme[] = [];
+  let buffer: string[] = [];
+  let ouvert = false;
+
+  txt.split("\n").forEach((ligne) => {
+    const m = ligne.match(/^\s*JOUR\s*\d+\s*[:\-–]?\s*(.*)$/i);
+    if (m) {
+      if (ouvert) {
+        jours[jours.length - 1].texte = buffer.join("\n").trim();
+      }
+      jours.push({ titre: (m[1] || "").trim(), texte: "" });
+      buffer = [];
+      ouvert = true;
+    } else if (ouvert) {
+      buffer.push(ligne);
+    }
+  });
+  if (ouvert) {
+    jours[jours.length - 1].texte = buffer.join("\n").trim();
+  }
+  return jours;
+}
+
+function serializeProgramme(jours: JourProgramme[]): string {
+  return jours
+    .map((j, i) => `JOUR ${i + 1} : ${j.titre}`.trimEnd() + (j.texte.trim() ? `\n${j.texte.trim()}` : ""))
+    .join("\n\n");
+}
+
 export default function DevisExpressPage() {
   const [isLogged, setIsLogged] = useState(false);
 
@@ -166,6 +210,15 @@ export default function DevisExpressPage() {
   // --- Transport ---
   const [sousTraite, setSousTraite] = useState(false);
   const [margeTransport, setMargeTransport] = useState(20);
+
+  // --- Barème transport Festimove (calcul au réel, à la place du ratio de zone) ---
+  const [baremeCheck, setBaremeCheck] = useState(false);
+  const [baremeKm, setBaremeKm] = useState(0);
+  const [baremePrixKm, setBaremePrixKm] = useState(2.5);
+  const [baremeJoursExcursion, setBaremeJoursExcursion] = useState(0);
+  const [baremePrixExcursion, setBaremePrixExcursion] = useState(1000);
+  const [baremeJoursImmo, setBaremeJoursImmo] = useState(0);
+  const [baremePrixImmo, setBaremePrixImmo] = useState(500);
 
   // --- Ratios ajustables (seedés par zone) ---
   const emptyRatios: ZoneRatios = { t: 0, h: 0, r: 0, a: 0 };
@@ -215,6 +268,30 @@ export default function DevisExpressPage() {
   const [lignesVierges, setLignesVierges] = useState(4);
   const [noteVisites, setNoteVisites] = useState("");
   const [detailVisitesMsg, setDetailVisitesMsg] = useState("");
+
+  // --- Édition du programme en sections "JOUR X" ---
+  const [modeTexteBrut, setModeTexteBrut] = useState(false);
+  const joursProgramme = useMemo(() => parseProgramme(programme), [programme]);
+
+  function updateJourProgramme(index: number, patch: Partial<JourProgramme>) {
+    setProgramme(serializeProgramme(joursProgramme.map((j, i) => (i === index ? { ...j, ...patch } : j))));
+  }
+
+  function addJourProgramme() {
+    setProgramme(serializeProgramme([...joursProgramme, { titre: "", texte: "" }]));
+  }
+
+  function removeJourProgramme(index: number) {
+    setProgramme(serializeProgramme(joursProgramme.filter((_, i) => i !== index)));
+  }
+
+  function moveJourProgramme(index: number, delta: number) {
+    const cible = index + delta;
+    if (cible < 0 || cible >= joursProgramme.length) return;
+    const copie = [...joursProgramme];
+    [copie[index], copie[cible]] = [copie[cible], copie[index]];
+    setProgramme(serializeProgramme(copie));
+  }
   const [ocrStatus, setOcrStatus] = useState("");
   const [ocrRawText, setOcrRawText] = useState("");
   const [copyState, setCopyState] = useState("");
@@ -322,14 +399,24 @@ export default function DevisExpressPage() {
 
     const coachBase = 43;
     const transportFactor = coachBase / Math.max(pax, 1);
-    const transportTotal = ratios.t * Math.max(jours, 1) * transportFactor;
+    // Deux modes de chiffrage du transport :
+    //  - barème Festimove : coût réel du groupe (km + journées), ramené au passager ;
+    //  - ratio de zone : estimation €/jour/pers calibrée sur un car de 43 places.
+    const baremeKmTotal = baremeKm * baremePrixKm;
+    const baremeExcursionTotal = baremeJoursExcursion * baremePrixExcursion;
+    const baremeImmoTotal = baremeJoursImmo * baremePrixImmo;
+    const baremeGroupe = baremeKmTotal + baremeExcursionTotal + baremeImmoTotal;
+    const transportTotal = baremeCheck
+      ? baremeGroupe / Math.max(pax, 1)
+      : ratios.t * Math.max(jours, 1) * transportFactor;
     const hebergTotal = ratios.h * nuits * niveauFactor * groupFactor;
     const joursPension = Math.max(nuits + 1, 1);
     const repasTotal = ratios.r * joursPension * niveauFactor;
     const assistTotal = ratios.a * Math.max(jours, 1);
     const visitesTotal = visites * joursPension;
 
-    const transportCost = transportTotal * (sousTraite ? 1 : 0.7);
+    // Le barème est déjà un prix de revient réel : pas d'abattement à 70% dessus.
+    const transportCost = baremeCheck ? transportTotal : transportTotal * (sousTraite ? 1 : 0.7);
     const transportMargePct = sousTraite ? marge : margeTransport;
     const transportWithMarge = transportCost * (1 + transportMargePct / 100);
 
@@ -362,6 +449,10 @@ export default function DevisExpressPage() {
       transportCost,
       transportMargePct,
       transportWithMarge,
+      baremeKmTotal,
+      baremeExcursionTotal,
+      baremeImmoTotal,
+      baremeGroupe,
       avecMarge,
       assuranceMontant,
       taxeSejourTotal,
@@ -382,6 +473,13 @@ export default function DevisExpressPage() {
     sousTraite,
     marge,
     margeTransport,
+    baremeCheck,
+    baremeKm,
+    baremePrixKm,
+    baremeJoursExcursion,
+    baremePrixExcursion,
+    baremeJoursImmo,
+    baremePrixImmo,
     assuranceCheck,
     assurancePct,
     assuranceMin,
@@ -718,6 +816,30 @@ export default function DevisExpressPage() {
       letterSpacing: 0.6,
     },
     listItem: { fontSize: 9.5, lineHeight: 1.5, marginBottom: 3, color: "#444" },
+    // --- Blocs "JOUR X" du programme ---
+    jourBlock: {
+      borderWidth: 1,
+      borderColor: "#e2ddd0",
+      borderLeftWidth: 3,
+      borderLeftColor: "#8ec63f",
+      borderRadius: 4,
+      padding: 10,
+      marginBottom: 10,
+    },
+    jourHead: { flexDirection: "row", alignItems: "center", marginBottom: 6 },
+    jourBadge: {
+      backgroundColor: "#3d5a45",
+      color: "#fff",
+      fontFamily: "Helvetica-Bold",
+      fontSize: 8,
+      paddingVertical: 3,
+      paddingHorizontal: 7,
+      borderRadius: 3,
+      letterSpacing: 0.6,
+      marginRight: 8,
+    },
+    jourTitre: { fontFamily: "Helvetica-Bold", fontSize: 11, color: "#1a1a1a" },
+    jourTexte: { fontSize: 9.5, lineHeight: 1.5, color: "#444" },
     // --- Tableau "Détail des visites" ---
     visTable: { borderWidth: 1, borderColor: "#e2ddd0", marginBottom: 10 },
     visHeadRow: { flexDirection: "row", backgroundColor: "#3d5a45" },
@@ -810,6 +932,7 @@ export default function DevisExpressPage() {
     ].filter((l): l is string => Boolean(l));
 
     const programmeLines = programme.trim() ? programme.split("\n") : [];
+    const programmeJours = parseProgramme(programme);
 
     return (
       <Document>
@@ -957,13 +1080,32 @@ export default function DevisExpressPage() {
             </View>
 
             <Text style={pdfStyles.sectionTitle}>Programme du séjour</Text>
-            <View style={pdfStyles.programmeText}>
-              {programmeLines.map((line, i) => (
-                <Text key={i} style={{ marginBottom: line.trim() === "" ? 4 : 1 }}>
-                  {line}
-                </Text>
-              ))}
-            </View>
+            {programmeJours.length > 0 ? (
+              programmeJours.map((j, i) => (
+                <View key={i} style={pdfStyles.jourBlock} wrap={false}>
+                  <View style={pdfStyles.jourHead}>
+                    <Text style={pdfStyles.jourBadge}>JOUR {i + 1}</Text>
+                    <Text style={pdfStyles.jourTitre}>{j.titre}</Text>
+                  </View>
+                  {j.texte
+                    .split("\n")
+                    .filter((l) => l.trim() !== "")
+                    .map((line, k) => (
+                      <Text key={k} style={pdfStyles.jourTexte}>
+                        {line}
+                      </Text>
+                    ))}
+                </View>
+              ))
+            ) : (
+              <View style={pdfStyles.programmeText}>
+                {programmeLines.map((line, i) => (
+                  <Text key={i} style={{ marginBottom: line.trim() === "" ? 4 : 1 }}>
+                    {line}
+                  </Text>
+                ))}
+              </View>
+            )}
 
             <Text style={pdfStyles.legalFooter}>
               Scolamove — Agence de voyages scolaires · Ce document est une estimation non contractuelle établie à titre indicatif.
@@ -1123,6 +1265,13 @@ export default function DevisExpressPage() {
       detailVisitesAffiche,
       lignesVierges,
       noteVisites,
+      baremeCheck,
+      baremeKm,
+      baremePrixKm,
+      baremeJoursExcursion,
+      baremePrixExcursion,
+      baremeJoursImmo,
+      baremePrixImmo,
     };
   }
 
@@ -1238,6 +1387,13 @@ export default function DevisExpressPage() {
     setMarge(d.marge);
     setSousTraite(d.sousTraite);
     setMargeTransport(d.margeTransport);
+    setBaremeCheck(d.baremeCheck ?? false);
+    setBaremeKm(d.baremeKm ?? 0);
+    setBaremePrixKm(d.baremePrixKm ?? 2.5);
+    setBaremeJoursExcursion(d.baremeJoursExcursion ?? 0);
+    setBaremePrixExcursion(d.baremePrixExcursion ?? 1000);
+    setBaremeJoursImmo(d.baremeJoursImmo ?? 0);
+    setBaremePrixImmo(d.baremePrixImmo ?? 500);
     setRatios(d.ratios);
     setAssuranceCheck(d.assuranceCheck);
     setAssurancePct(d.assurancePct);
@@ -1290,6 +1446,13 @@ export default function DevisExpressPage() {
     setMarge(5);
     setSousTraite(false);
     setMargeTransport(20);
+    setBaremeCheck(false);
+    setBaremeKm(0);
+    setBaremePrixKm(2.5);
+    setBaremeJoursExcursion(0);
+    setBaremePrixExcursion(1000);
+    setBaremeJoursImmo(0);
+    setBaremePrixImmo(500);
     setRatios(emptyRatios);
     setAssuranceCheck(false);
     setAssurancePct(2.5);
@@ -1940,6 +2103,135 @@ Jérémy — Scolamove`;
             marché, ratio calibré sur un car de 43 places (le plus petit de la flotte).
           </p>
 
+          {/* ---- Barème Festimove : chiffrage du transport au réel ---- */}
+          <div style={{ marginTop: 16, paddingTop: 16, borderTop: "1px dashed #d8d3c4" }}>
+            <label
+              style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: 8 }}
+              className="de-check-row"
+            >
+              <input
+                type="checkbox"
+                checked={baremeCheck}
+                onChange={(e) => setBaremeCheck(e.target.checked)}
+                style={{ width: "auto", margin: 0 }}
+              />
+              <span>Chiffrer le transport au barème Festimove (remplace le ratio de zone)</span>
+            </label>
+
+            {baremeCheck && (
+              <>
+                <div className="admin-form-grid two" style={{ marginTop: 12 }}>
+                  <label>
+                    Kilomètres totaux (aller, excursions, retour)
+                    <input
+                      type="number"
+                      min={0}
+                      value={baremeKm}
+                      onChange={(e) => setBaremeKm(Number(e.target.value))}
+                    />
+                  </label>
+                  <label>
+                    Prix du kilomètre (€)
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={baremePrixKm}
+                      onChange={(e) => setBaremePrixKm(Number(e.target.value))}
+                    />
+                  </label>
+                  <label>
+                    Journées d&apos;excursion
+                    <input
+                      type="number"
+                      min={0}
+                      value={baremeJoursExcursion}
+                      onChange={(e) => setBaremeJoursExcursion(Number(e.target.value))}
+                    />
+                  </label>
+                  <label>
+                    Prix de la journée d&apos;excursion (€)
+                    <input
+                      type="number"
+                      value={baremePrixExcursion}
+                      onChange={(e) => setBaremePrixExcursion(Number(e.target.value))}
+                    />
+                  </label>
+                  <label>
+                    Journées d&apos;immobilisation (sans transport)
+                    <input
+                      type="number"
+                      min={0}
+                      value={baremeJoursImmo}
+                      onChange={(e) => setBaremeJoursImmo(Number(e.target.value))}
+                    />
+                  </label>
+                  <label>
+                    Prix de la journée d&apos;immobilisation (€)
+                    <input
+                      type="number"
+                      value={baremePrixImmo}
+                      onChange={(e) => setBaremePrixImmo(Number(e.target.value))}
+                    />
+                  </label>
+                </div>
+
+                <div
+                  style={{
+                    marginTop: 12,
+                    border: "1px solid #dce8f5",
+                    borderRadius: 14,
+                    padding: 14,
+                    background: "#fbfdff",
+                    fontSize: 13,
+                  }}
+                >
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                    <span>
+                      Kilomètres ({baremeKm} × {baremePrixKm.toFixed(2)} €)
+                    </span>
+                    <span>{result.baremeKmTotal.toFixed(2)} €</span>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                    <span>
+                      Excursions ({baremeJoursExcursion} × {baremePrixExcursion.toFixed(2)} €)
+                    </span>
+                    <span>{result.baremeExcursionTotal.toFixed(2)} €</span>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+                    <span>
+                      Immobilisations ({baremeJoursImmo} × {baremePrixImmo.toFixed(2)} €)
+                    </span>
+                    <span>{result.baremeImmoTotal.toFixed(2)} €</span>
+                  </div>
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      borderTop: "1px solid #dce8f5",
+                      paddingTop: 8,
+                      fontWeight: 700,
+                    }}
+                  >
+                    <span>Coût de revient transport pour le groupe</span>
+                    <span>{result.baremeGroupe.toFixed(2)} €</span>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>
+                    <span>
+                      Soit par personne ({result.pax} pax), marge {result.transportMargePct}% incluse
+                    </span>
+                    <span style={{ fontWeight: 700 }}>{result.transportWithMarge.toFixed(2)} €</span>
+                  </div>
+                </div>
+
+                <p className="de-hint">
+                  Barème de référence : 2,50 € du kilomètre, 1 000 € la journée d&apos;excursion,
+                  500 € la journée d&apos;immobilisation sans transport. Ce montant est un prix de revient
+                  réel : l&apos;abattement à 70% ne s&apos;applique pas, seule la marge transport est ajoutée.
+                </p>
+              </>
+            )}
+          </div>
+
           <details style={{ marginTop: 16 }}>
             <summary style={{ cursor: "pointer", fontSize: 12, color: "#6b7268", textTransform: "uppercase" }}>
               Ajuster les ratios de base (€/jour/pers) ▾
@@ -2060,10 +2352,129 @@ Jérémy — Scolamove`;
           {sejourImportMsg && <p className="de-estimate-msg">{sejourImportMsg}</p>}
 
           <div style={{ marginTop: 16, paddingTop: 16, borderTop: "1px dashed var(--line)" }}>
-            <label>
-              Ou colle le programme jour par jour à la main (JOUR 1, JOUR 2...)
-              <textarea rows={8} value={programme} onChange={(e) => setProgramme(e.target.value)} placeholder={"JOUR 1 : Départ...\nJOUR 2 : Visite du site archéologique..."} />
-            </label>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                gap: 12,
+                flexWrap: "wrap",
+                marginBottom: 10,
+              }}
+            >
+              <strong style={{ fontSize: 14 }}>Programme jour par jour</strong>
+              <button
+                type="button"
+                onClick={() => setModeTexteBrut((v) => !v)}
+                className="de-btn de-btn-outline"
+              >
+                {modeTexteBrut ? "Revenir aux sections" : "Mode texte brut (coller / corriger)"}
+              </button>
+            </div>
+
+            {modeTexteBrut ? (
+              <label>
+                Colle le programme complet (une ligne « JOUR 1 : … » par journée)
+                <textarea
+                  rows={12}
+                  value={programme}
+                  onChange={(e) => setProgramme(e.target.value)}
+                  placeholder={"JOUR 1 : Voyage aller\nDépart en autocar de votre établissement...\n\nJOUR 2 : Cordoue\nVisite de l'Alcázar..."}
+                />
+              </label>
+            ) : (
+              <>
+                {joursProgramme.length === 0 && (
+                  <p className="de-estimate-msg">
+                    Aucune journée pour l&apos;instant. Ajoute une journée, importe un séjour du site,
+                    ou colle ton texte via le mode texte brut.
+                  </p>
+                )}
+
+                {joursProgramme.map((j, i) => (
+                  <div
+                    key={i}
+                    style={{
+                      border: "1px solid #dce8f5",
+                      borderRadius: 14,
+                      padding: 14,
+                      marginBottom: 12,
+                      background: "#fbfdff",
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 10,
+                        marginBottom: 10,
+                        flexWrap: "wrap",
+                      }}
+                    >
+                      <span
+                        style={{
+                          background: "#3d5a45",
+                          color: "#fff",
+                          borderRadius: 8,
+                          padding: "4px 10px",
+                          fontWeight: 700,
+                          fontSize: 12,
+                          letterSpacing: 0.5,
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        JOUR {i + 1}
+                      </span>
+                      <input
+                        type="text"
+                        value={j.titre}
+                        placeholder="Titre de la journée (ex. Cordoue)"
+                        onChange={(e) => updateJourProgramme(i, { titre: e.target.value })}
+                        style={{ flex: "1 1 220px" }}
+                      />
+                      <div style={{ display: "flex", gap: 4 }}>
+                        <button
+                          type="button"
+                          onClick={() => moveJourProgramme(i, -1)}
+                          disabled={i === 0}
+                          title="Monter"
+                          style={{ border: "1px solid #dce8f5", background: "#fff", borderRadius: 8, cursor: "pointer", padding: "4px 9px" }}
+                        >
+                          ↑
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => moveJourProgramme(i, 1)}
+                          disabled={i === joursProgramme.length - 1}
+                          title="Descendre"
+                          style={{ border: "1px solid #dce8f5", background: "#fff", borderRadius: 8, cursor: "pointer", padding: "4px 9px" }}
+                        >
+                          ↓
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => removeJourProgramme(i)}
+                          title="Supprimer cette journée"
+                          style={{ border: "1px solid #f0c9c2", background: "#fff", borderRadius: 8, cursor: "pointer", padding: "4px 9px", color: "#c0392b" }}
+                        >
+                          ×
+                        </button>
+                      </div>
+                    </div>
+                    <textarea
+                      rows={3}
+                      value={j.texte}
+                      placeholder="Détail de la journée : visites, repas, hébergement..."
+                      onChange={(e) => updateJourProgramme(i, { texte: e.target.value })}
+                    />
+                  </div>
+                ))}
+
+                <button type="button" onClick={addJourProgramme} className="de-btn de-btn-outline">
+                  + Ajouter une journée
+                </button>
+              </>
+            )}
           </div>
           <div className="admin-form-grid two" style={{ marginTop: 8 }}>
             <label>
