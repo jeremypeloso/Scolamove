@@ -637,8 +637,11 @@ export default function AdminPage() {
             Réglages
           </button>
 
+          <a href="/admin/voyages" className="admin-menu-link">
+            Devis et dossiers
+          </a>
           <a href="/admin/devis-express" className="admin-menu-link">
-            Devis Express
+            Ancien devis express
           </a>
           <a href="/admin/import-fiche" className="admin-menu-link">
             Importer une fiche

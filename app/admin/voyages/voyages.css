@@ -1,0 +1,356 @@
+/* -----------------------------------------------------------------------------
+   Devis et dossiers de voyage : outil de travail, dense et sobre.
+   Tout est préfixé .vg pour ne rien changer au reste du site.
+   Encre sombre sur fond clair, vert du logo pour ce qui est acquis, orange pour
+   l'action principale. Les montants sont en chiffres tabulaires, alignés à droite.
+   ----------------------------------------------------------------------------- */
+
+.vg {
+  --encre: #17282b;
+  --muet: #5f6f73;
+  --fond: #f2f3ef;
+  --carte: #ffffff;
+  --trait: #dde1da;
+  --trait-fort: #c3cac1;
+  --chrome: #123c3f;
+  --vert: #5d8410;
+  --vert-clair: #edf4d9;
+  --orange: #d4500a;
+  --orange-clair: #fdeee3;
+  --rouge: #b3261e;
+  --rouge-clair: #fbe9e7;
+  --jaune-clair: #fff6d6;
+
+  min-height: 100vh;
+  background: var(--fond);
+  color: var(--encre);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.vg h1 { font-size: 20px; margin-bottom: 6px; }
+.vg h2 { font-size: 15px; font-weight: 700; }
+.vg small { display: block; color: var(--muet); font-size: 12px; }
+.vg strong { font-weight: 650; }
+
+.vg-centre { display: grid; place-items: center; padding: 40px 16px; }
+.vg-centre .vg-bloc { max-width: 420px; display: grid; gap: 12px; }
+
+/* --- Barre du haut ---------------------------------------------------------- */
+
+.vg-barre {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 20px;
+  background: var(--chrome);
+  color: #fff;
+  position: sticky;
+  top: 0;
+  z-index: 30;
+}
+.vg-retour { font-size: 13px; opacity: 0.85; padding: 6px 10px 6px 0; border-right: 1px solid rgba(255, 255, 255, 0.25); }
+.vg-retour::before { content: "‹ "; }
+.vg-retour:hover { opacity: 1; }
+.vg-barre-titre { flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 10px; }
+.vg-barre-titre strong { font-size: 15px; letter-spacing: 0.01em; white-space: nowrap; }
+.vg-barre-titre span { opacity: 0.8; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vg-sauvegarde { font-size: 12.5px; opacity: 0.85; white-space: nowrap; }
+.vg-sauvegarde-erreur { color: #ffc9c2; opacity: 1; font-weight: 650; }
+.vg-barre .vg-btn { border-color: rgba(255, 255, 255, 0.35); background: transparent; color: #fff; }
+.vg-barre .vg-btn:hover { background: rgba(255, 255, 255, 0.12); }
+.vg-barre .vg-btn-plein { background: var(--orange); border-color: var(--orange); }
+.vg-barre .vg-btn-plein:hover { background: #b9450a; }
+
+/* --- Étapes ----------------------------------------------------------------- */
+
+.vg-etapes-nav {
+  display: flex;
+  gap: 2px;
+  padding: 0 20px;
+  background: var(--carte);
+  border-bottom: 1px solid var(--trait);
+  position: sticky;
+  top: 50px;
+  z-index: 20;
+  overflow-x: auto;
+}
+.vg-etape-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 14px 9px;
+  border: 0;
+  border-bottom: 3px solid transparent;
+  background: none;
+  color: var(--muet);
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.vg-etape-nav:hover { color: var(--encre); }
+.vg-etape-nav.vg-actif { color: var(--encre); border-bottom-color: var(--orange); }
+.vg-etape-num {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--fond);
+  border: 1px solid var(--trait-fort);
+  font-size: 11.5px;
+}
+.vg-actif .vg-etape-num { background: var(--chrome); border-color: var(--chrome); color: #fff; }
+.vg-repere { font-size: 11.5px; font-weight: 600; padding: 1px 6px; border-radius: 9px; background: var(--jaune-clair); color: #6b5300; }
+
+/* --- Mise en page ----------------------------------------------------------- */
+
+.vg-page { max-width: 1360px; margin: 0 auto; padding: 18px 20px 60px; display: grid; gap: 14px; }
+.vg-corps { display: grid; grid-template-columns: minmax(0, 1fr) 270px; gap: 16px; align-items: start; max-width: 1560px; margin: 0 auto; padding: 16px 20px 80px; }
+.vg-principal { display: grid; gap: 14px; min-width: 0; }
+.vg-principal > * { min-width: 0; }
+.vg-bandeau { margin: 12px 20px 0; }
+
+.vg-bloc { background: var(--carte); border: 1px solid var(--trait); border-radius: 6px; padding: 16px 18px; }
+.vg-bloc-tete { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 12px; }
+.vg-note { color: var(--muet); font-size: 13px; margin-top: 2px; max-width: 70ch; }
+.vg-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.vg-actions-bas { margin-top: 12px; }
+.vg-suite { display: flex; justify-content: space-between; padding-top: 4px; }
+
+.vg-grille { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px 14px; }
+.vg-grille + .vg-grille, .vg-grille-haut { margin-top: 12px; }
+.vg-grille-6 { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+.vg-champ { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.vg-champ-large { grid-column: span 2; }
+.vg-pile { gap: 12px; }
+.vg-label { font-size: 12.5px; font-weight: 600; color: var(--muet); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.vg-aide { font-size: 12px; color: var(--muet); }
+.vg-lecture { padding: 7px 0; }
+.vg-ligne { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+
+/* --- Champs ----------------------------------------------------------------- */
+
+.vg-input {
+  width: 100%;
+  min-width: 0;
+  padding: 6px 8px;
+  border: 1px solid var(--trait-fort);
+  border-radius: 4px;
+  background: #fff;
+  color: var(--encre);
+  font: inherit;
+  line-height: 1.35;
+}
+.vg-input::placeholder { color: #9aa5a3; }
+.vg-input:hover { border-color: #9fa9a2; }
+.vg-input:focus, .vg-btn:focus-visible, .vg-icone:focus-visible, .vg-lien:focus-visible, .vg-etape-nav:focus-visible, .vg-filtre:focus-visible {
+  outline: 2px solid var(--chrome);
+  outline-offset: 1px;
+  border-color: var(--chrome);
+}
+.vg-input:disabled { background: var(--fond); color: var(--muet); }
+.vg-input-auto { width: auto; }
+.vg-zone { resize: vertical; min-height: 54px; }
+select.vg-input { padding-right: 4px; }
+
+.vg-nombre { display: flex; align-items: center; gap: 5px; min-width: 0; }
+.vg-nombre .vg-input { text-align: right; font-variant-numeric: tabular-nums; }
+.vg-suffixe { font-size: 12px; color: var(--muet); white-space: nowrap; }
+.vg-coche { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; cursor: pointer; white-space: nowrap; }
+.vg-coche input { accent-color: var(--chrome); width: 15px; height: 15px; }
+
+.vg-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 7px 12px;
+  border: 1px solid var(--trait-fort);
+  border-radius: 4px;
+  background: #fff;
+  color: var(--encre);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.vg-btn:hover { background: var(--fond); }
+.vg-btn:disabled { opacity: 0.5; cursor: default; }
+.vg-btn-plein { background: var(--chrome); border-color: var(--chrome); color: #fff; }
+.vg-btn-plein:hover { background: #0c2c2e; }
+.vg-btn-mini { padding: 3px 9px; font-size: 12.5px; }
+.vg-btn-discret { border-style: dashed; color: var(--muet); }
+.vg-icone { width: 24px; height: 24px; border: 0; border-radius: 4px; background: none; color: var(--muet); font-size: 14px; cursor: pointer; }
+.vg-icone:hover:not(:disabled) { background: var(--fond); color: var(--encre); }
+.vg-icone:disabled { opacity: 0.3; cursor: default; }
+.vg-lien { border: 0; background: none; color: var(--chrome); font: inherit; font-size: 13px; font-weight: 600; text-decoration: underline; text-underline-offset: 2px; cursor: pointer; padding: 2px 4px; }
+.vg-danger, .vg-icone.vg-danger:hover:not(:disabled) { color: var(--rouge); }
+.vg-outils { display: inline-flex; align-items: center; gap: 2px; justify-content: flex-end; }
+
+.vg-pastille { display: inline-block; font-size: 11.5px; font-weight: 600; padding: 1px 7px; border-radius: 9px; background: var(--vert-clair); color: #3d5709; margin-left: 6px; white-space: nowrap; }
+.vg-droite { text-align: right; }
+.vg-chiffre { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.vg-fort { font-weight: 700; }
+.vg-muet { color: var(--muet); font-size: 12.5px; }
+.vg-negatif { color: var(--rouge); }
+
+.vg-message { margin-top: 10px; padding: 8px 10px; border-radius: 4px; background: var(--vert-clair); font-size: 13px; }
+.vg-erreur { background: var(--rouge-clair); color: #7c1a14; }
+.vg-ok { padding: 8px 10px; border-radius: 4px; background: var(--vert-clair); color: #3d5709; font-weight: 600; }
+.vg-vide { display: grid; justify-items: start; gap: 10px; padding: 18px; border: 1px dashed var(--trait-fort); border-radius: 6px; color: var(--muet); }
+
+.vg-controle { list-style: none; display: grid; gap: 4px; }
+.vg-controle li { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 5px 10px; border-radius: 4px; background: var(--jaune-clair); font-size: 13px; }
+.vg-controle li.vg-bloquant { background: var(--rouge-clair); }
+
+/* --- Programme -------------------------------------------------------------- */
+
+.vg-jour { border: 1px solid var(--trait); border-radius: 6px; margin-bottom: 10px; overflow: hidden; }
+.vg-jour-tete { display: flex; align-items: center; gap: 10px; padding: 8px 10px; background: var(--fond); border-bottom: 1px solid var(--trait); }
+.vg-jour-num { font-weight: 700; white-space: nowrap; }
+.vg-jour-date { color: var(--muet); font-size: 13px; white-space: nowrap; min-width: 0; }
+.vg-jour-titre { flex: 1; font-weight: 600; }
+.vg-etapes { padding: 4px 10px; }
+.vg-etape { padding: 6px 0; border-bottom: 1px solid var(--trait); }
+.vg-etape:last-child { border-bottom: 0; }
+.vg-etape-ligne { display: grid; grid-template-columns: 96px 128px minmax(0, 1.3fr) minmax(0, 1fr) auto; gap: 6px; align-items: center; }
+.vg-etape-suite { display: flex; gap: 10px; align-items: center; margin: 5px 0 0 230px; }
+.vg-etape-suite > .vg-input { flex: 1; font-size: 13px; border-color: var(--trait); }
+.vg-etape-prix { display: flex; align-items: center; gap: 8px; padding: 3px 8px; border-radius: 4px; background: var(--orange-clair); white-space: nowrap; }
+.vg-etape-prix .vg-nombre .vg-input { width: 64px; }
+.vg-jour-pied { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 8px 10px; border-top: 1px solid var(--trait); }
+.vg-ajouts { display: flex; flex-wrap: wrap; gap: 6px; }
+.vg-nuit { display: flex; align-items: center; gap: 8px; flex: 0 1 380px; font-size: 12.5px; font-weight: 600; color: var(--muet); }
+.vg-nuit .vg-input { font-weight: 400; color: var(--encre); }
+.vg-resume { padding: 0 10px 8px; }
+.vg-resume summary { cursor: pointer; font-size: 12.5px; color: var(--muet); padding: 2px 0 6px; }
+
+/* --- Cotation --------------------------------------------------------------- */
+
+.vg-estimation { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--trait); }
+.vg-estimation summary { cursor: pointer; font-weight: 600; margin-bottom: 8px; }
+.vg-poste .vg-bloc-tete { align-items: baseline; margin-bottom: 8px; }
+.vg-poste-total { font-size: 13px; color: var(--muet); font-variant-numeric: tabular-nums; }
+.vg-poste-total strong { color: var(--encre); }
+.vg-cotation { overflow-x: auto; margin-bottom: 10px; }
+.vg-cot-tete, .vg-cot-ligne {
+  display: grid;
+  grid-template-columns: minmax(240px, 1fr) 104px 112px 168px 62px 82px 82px 78px 64px;
+  gap: 8px;
+  align-items: center;
+  min-width: 1060px;
+}
+.vg-cot-tete { font-size: 12px; font-weight: 600; color: var(--muet); padding: 0 0 5px; border-bottom: 1px solid var(--trait-fort); }
+.vg-cot-ligne { padding: 7px 0; border-bottom: 1px solid var(--trait); }
+.vg-cot-ligne .vg-chiffre { font-size: 13px; }
+.vg-cot-ligne .vg-outils .vg-icone { width: 20px; }
+.vg-cot-option { background: repeating-linear-gradient(-45deg, #fff, #fff 6px, #fbf7ee 6px, #fbf7ee 12px); }
+.vg-cot-option .vg-chiffre { color: var(--muet); }
+.vg-cot-reglages { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; margin-top: -3px; }
+.vg-cot-reglages .vg-coche { font-size: 12px; color: var(--muet); }
+.vg-cot-reglages .vg-pastille { margin-left: 0; }
+.vg-duo { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+.vg-duo .vg-suffixe { font-size: 11px; }
+
+/* --- Réservations ----------------------------------------------------------- */
+
+.vg-avancement { display: flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 600; white-space: nowrap; }
+.vg-jauge { width: 120px; height: 8px; border-radius: 4px; background: var(--fond); border: 1px solid var(--trait); overflow: hidden; }
+.vg-jauge span { display: block; height: 100%; background: var(--vert); }
+.vg-resa { overflow-x: auto; }
+.vg-resa-tete, .vg-resa-ligne { display: grid; grid-template-columns: minmax(200px, 1.3fr) minmax(170px, 1fr) 132px 140px 142px 110px 96px; gap: 8px; align-items: center; min-width: 1040px; }
+.vg-resa-tete { font-size: 12px; font-weight: 600; color: var(--muet); padding-bottom: 5px; border-bottom: 1px solid var(--trait-fort); }
+.vg-resa-ligne { padding: 6px 0 6px 8px; border-bottom: 1px solid var(--trait); border-left: 3px solid var(--trait-fort); }
+.vg-resa-ligne.vg-statut-option { border-left-color: #d9a400; }
+.vg-resa-ligne.vg-statut-confirme, .vg-resa-ligne.vg-statut-solde { border-left-color: var(--vert); }
+.vg-resa-total { display: flex; justify-content: flex-end; gap: 28px; padding-top: 10px; font-size: 13px; color: var(--muet); }
+.vg-resa-total strong { color: var(--encre); font-variant-numeric: tabular-nums; }
+.vg-fiche { padding: 14px; margin-bottom: 14px; border: 1px solid var(--trait-fort); border-radius: 6px; background: var(--fond); }
+
+/* --- Tableaux --------------------------------------------------------------- */
+
+.vg-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+.vg-table th { text-align: left; font-size: 12px; font-weight: 600; color: var(--muet); padding: 6px 8px; border-bottom: 1px solid var(--trait-fort); white-space: nowrap; }
+.vg-table th.vg-droite { text-align: right; }
+.vg-table td { padding: 7px 8px; border-bottom: 1px solid var(--trait); vertical-align: middle; font-variant-numeric: tabular-nums; }
+.vg-table tbody tr:hover { background: #fafbf8; }
+.vg-participants td { padding: 3px 4px; }
+.vg-ref { font-weight: 700; color: var(--chrome); text-decoration: underline; text-underline-offset: 2px; white-space: nowrap; }
+
+.vg-filtres { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 12px; }
+.vg-filtre { padding: 5px 11px; border: 1px solid var(--trait-fort); border-radius: 15px; background: #fff; font: inherit; font-size: 13px; font-weight: 600; color: var(--muet); cursor: pointer; }
+.vg-filtre span { font-weight: 500; opacity: 0.75; margin-left: 2px; }
+.vg-filtre.vg-actif { background: var(--chrome); border-color: var(--chrome); color: #fff; }
+.vg-recherche { width: 290px; margin-left: auto; }
+
+.vg-etiquette { display: inline-block; padding: 2px 9px; border-radius: 10px; font-size: 12px; font-weight: 600; background: var(--fond); border: 1px solid var(--trait-fort); white-space: nowrap; }
+.vg-etiquette.vg-statut-envoye { background: var(--jaune-clair); border-color: #e6d28a; color: #6b5300; }
+.vg-etiquette.vg-statut-accepte, .vg-etiquette.vg-statut-termine { background: var(--vert-clair); border-color: #c5d99a; color: #3d5709; }
+.vg-etiquette.vg-statut-perdu { background: var(--rouge-clair); border-color: #efc1bc; color: #7c1a14; }
+.vg-barre .vg-statut-dossier { background: rgba(255, 255, 255, 0.1); color: #fff; border-color: rgba(255, 255, 255, 0.35); font-weight: 600; }
+.vg-barre .vg-statut-dossier option { color: var(--encre); }
+
+/* --- Chambres --------------------------------------------------------------- */
+
+.vg-conducteur { margin-bottom: 6px; }
+.vg-conducteur .vg-input { flex: 0 1 260px; }
+.vg-chambres { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; margin: 14px 0; }
+.vg-chambre { display: grid; gap: 4px; padding: 6px; border: 1px solid var(--trait); border-radius: 6px; background: var(--fond); }
+.vg-chambre-pleine { border-color: var(--rouge); background: var(--rouge-clair); }
+.vg-chambre-pied { display: flex; justify-content: space-between; align-items: center; font-size: 12.5px; color: var(--muet); }
+.vg-capacite { width: 26px; text-align: center; border: 1px solid var(--trait-fort); border-radius: 3px; font: inherit; padding: 0 2px; }
+
+/* --- Ticket de prix --------------------------------------------------------- */
+
+.vg-ticket {
+  position: sticky;
+  top: 108px;
+  background: var(--carte);
+  border: 1px solid var(--trait);
+  border-top: 4px solid var(--orange);
+  border-radius: 6px;
+  padding: 14px 16px;
+}
+.vg-ticket-label { font-size: 12.5px; font-weight: 600; color: var(--muet); }
+.vg-ticket-prix { font-size: 34px; font-weight: 750; line-height: 1.1; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; margin: 2px 0 6px; white-space: nowrap; }
+.vg-ticket-base { font-size: 12.5px; color: var(--muet); padding-bottom: 12px; border-bottom: 1px dashed var(--trait-fort); }
+.vg-ticket-totaux { margin: 10px 0; display: grid; gap: 5px; }
+.vg-ticket-totaux div { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.vg-ticket-totaux dt { color: var(--muet); font-size: 13px; }
+.vg-ticket-totaux dd { font-weight: 650; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+.vg-ticket-totaux dd small { font-weight: 500; }
+.vg-ticket-totaux .vg-positif dd { color: var(--vert); }
+.vg-ticket-totaux .vg-negatif dd { color: var(--rouge); }
+.vg-ticket-postes { list-style: none; display: grid; gap: 6px; padding-top: 10px; border-top: 1px dashed var(--trait-fort); }
+.vg-ticket-postes li { display: grid; grid-template-columns: 82px 1fr auto; align-items: center; gap: 8px; font-size: 12.5px; }
+.vg-ticket-postes strong { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.vg-barre-poste { height: 6px; border-radius: 3px; background: var(--fond); overflow: hidden; }
+.vg-barre-poste span { display: block; height: 100%; background: var(--chrome); }
+.vg-ticket-options { margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--trait-fort); font-size: 12.5px; color: var(--muet); display: grid; gap: 2px; }
+
+/* --- Aperçu PDF ------------------------------------------------------------- */
+
+.vg-apercu { position: fixed; inset: 0; z-index: 100; display: flex; flex-direction: column; background: rgba(18, 40, 43, 0.72); padding: 20px; }
+.vg-apercu-barre { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: var(--carte); border-radius: 6px 6px 0 0; }
+.vg-apercu iframe { flex: 1; width: 100%; border: 0; background: #fff; border-radius: 0 0 6px 6px; }
+
+/* --- Écrans étroits --------------------------------------------------------- */
+
+@media (max-width: 1180px) {
+  .vg-corps { grid-template-columns: minmax(0, 1fr); }
+  .vg-ticket { position: static; order: -1; }
+}
+@media (max-width: 760px) {
+  .vg-grille, .vg-grille-6 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .vg-barre { flex-wrap: wrap; position: static; }
+  .vg-etapes-nav { position: static; }
+  .vg-etape-ligne { grid-template-columns: 96px 1fr auto; }
+  .vg-etape-ligne .vg-libelle, .vg-etape-ligne .vg-lieu { grid-column: 1 / -1; }
+  .vg-etape-suite { margin-left: 0; flex-wrap: wrap; }
+  .vg-jour-tete, .vg-jour-pied, .vg-bloc-tete { flex-wrap: wrap; }
+  .vg-recherche { width: 100%; margin-left: 0; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .vg-jauge span, .vg-barre-poste span { transition: width 0.25s ease; }
+}
