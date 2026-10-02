@@ -25,7 +25,7 @@ export function FeuilleRoutePdf({
   date?: Date;
 }) {
   const f = d.feuilleRoute;
-  const { nuits } = duree(d);
+  const { jours } = duree(d);
   const adresse = [d.client.adresse, [d.client.codePostal, d.client.ville].filter(Boolean).join(" ")].filter(Boolean);
   const annuaire = new Map(prestataires.map((p) => [p.id, p]));
   const lignes = synoptique(d);
@@ -162,7 +162,7 @@ export function FeuilleRoutePdf({
           </View>
           <View style={{ width: "49%", borderWidth: 1, borderColor: C.trait, borderRadius: 3, padding: 9 }}>
             <Text style={[s.h3, { color: C.vertFonce }]}>
-              Retour, {formatJour(dateDuJour(d, nuits), true) || "date à préciser"}
+              Retour, {formatJour(dateDuJour(d, Math.max(jours - 1, 0)), true) || "date à préciser"}
             </Text>
             <Text style={s.gras}>{f.retourLieu || f.departLieu}</Text>
             <Text style={{ marginTop: 4 }}>

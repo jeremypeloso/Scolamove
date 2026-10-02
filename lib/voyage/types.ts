@@ -182,6 +182,9 @@ export type Dossier = {
   retour: string;
   jours: number;
   nuits: number;
+  // Nombre de nuits saisi à la main alors que les dates sont connues (nuits à
+  // bord de l'autocar, par exemple). null : déduit des dates.
+  nuitsForcees: number | null;
   periode: string;
 
   eleves: number;

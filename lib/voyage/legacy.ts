@@ -14,7 +14,7 @@ import {
   nouvellePrestation,
   ZONES,
 } from "./defaults";
-import { arrondir2, calculer } from "./calcul";
+import { arrondir2, calculer, duree } from "./calcul";
 import type { Dossier, Jour, Prestation } from "./types";
 
 type Ratios = { t: number; h: number; r: number; a: number };
@@ -317,6 +317,8 @@ export function convertirDevisExpress(row: DevisExpressRow): Dossier {
     retour: dates?.retour || "",
     jours,
     nuits,
+    // Durée du devis d'origine conservée si elle diffère de l'écart entre les dates.
+    nuitsForcees: null,
     periode: dates ? "" : x.dateVoyage || "",
     eleves,
     accompagnateurs: accomp,
@@ -327,6 +329,8 @@ export function convertirDevisExpress(row: DevisExpressRow): Dossier {
     sejourCatalogueId: x.selectedSejourId || null,
     devisExpressId: row.id,
   };
+
+  if (dates && duree(dossier).nuits !== nuits) dossier.nuitsForcees = nuits;
 
   const inclusions = genererInclusions(dossier);
   const neComprendPas = x.cautionCheck

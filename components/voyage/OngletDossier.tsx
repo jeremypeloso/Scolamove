@@ -12,6 +12,9 @@ export function OngletDossier({ d, maj }: PropsOnglet) {
   const champ = (patch: Partial<Dossier>) => maj((x) => ({ ...x, ...patch }));
   const { jours, nuits } = duree(d);
   const datesConnues = Boolean(d.depart && d.retour);
+  // Nuits déduites des dates, pour signaler une correction manuelle.
+  const nuitsDates = duree({ ...d, nuitsForcees: null }).nuits;
+  const nuitsModifiees = datesConnues && d.nuitsForcees !== null && d.nuitsForcees !== nuitsDates;
   const personnes = d.eleves + d.accompagnateurs + d.conducteurs;
   const places = vehiculeConseille(personnes);
 
@@ -52,9 +55,29 @@ export function OngletDossier({ d, maj }: PropsOnglet) {
           <Champ label="Jours" aide={datesConnues ? "Calculé" : undefined}>
             <Nombre value={jours} onChange={(x) => champ({ jours: x })} desactive={datesConnues} />
           </Champ>
-          <Champ label="Nuits" aide={datesConnues ? "Calculé" : undefined}>
-            <Nombre value={nuits} onChange={(x) => champ({ nuits: x })} desactive={datesConnues} />
-          </Champ>
+          <div className="vg-champ">
+            <label className="vg-champ">
+              <span className="vg-label">Nuits</span>
+              <Nombre
+                value={nuits}
+                titre="Nombre de nuits"
+                onChange={(x) => {
+                  const valeur = Math.max(Math.round(x), 0);
+                  champ(datesConnues ? { nuitsForcees: valeur === nuitsDates ? null : valeur } : { nuits: valeur });
+                }}
+              />
+            </label>
+            {nuitsModifiees ? (
+              <span className="vg-aide">
+                Modifié ({nuitsDates} d&apos;après les dates).{" "}
+                <button type="button" className="vg-lien" onClick={() => champ({ nuitsForcees: null })}>
+                  Recalculer
+                </button>
+              </span>
+            ) : datesConnues ? (
+              <span className="vg-aide">Calculé, modifiable (nuits à bord, par exemple).</span>
+            ) : null}
+          </div>
           {!datesConnues ? (
             <Champ label="Période souhaitée" large aide="Affichée sur le devis tant que les dates ne sont pas fixées.">
               <Texte value={d.periode} onChange={(periode) => champ({ periode })} placeholder="Avril 2027" />

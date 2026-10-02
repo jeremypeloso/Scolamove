@@ -47,7 +47,11 @@ export function arrondir2(valeur: number): number {
 }
 
 // Durée du voyage : calculée depuis les dates quand elles existent, sinon saisie.
-export function duree(d: Pick<Dossier, "depart" | "retour" | "jours" | "nuits">): {
+// Les jours suivent toujours les dates ; les nuits aussi, sauf si elles ont été
+// corrigées à la main.
+export function duree(
+  d: Pick<Dossier, "depart" | "retour" | "jours" | "nuits"> & { nuitsForcees?: number | null }
+): {
   jours: number;
   nuits: number;
 } {
@@ -55,8 +59,10 @@ export function duree(d: Pick<Dossier, "depart" | "retour" | "jours" | "nuits">)
     const debut = Date.parse(`${d.depart}T00:00:00Z`);
     const fin = Date.parse(`${d.retour}T00:00:00Z`);
     if (Number.isFinite(debut) && Number.isFinite(fin) && fin >= debut) {
-      const nuits = Math.round((fin - debut) / 86400000);
-      return { jours: nuits + 1, nuits };
+      const ecart = Math.round((fin - debut) / 86400000);
+      const forcees = d.nuitsForcees;
+      const nuits = forcees !== null && forcees !== undefined ? Math.max(n(forcees), 0) : ecart;
+      return { jours: ecart + 1, nuits };
     }
   }
   return { jours: Math.max(n(d.jours), 0), nuits: Math.max(n(d.nuits), 0) };

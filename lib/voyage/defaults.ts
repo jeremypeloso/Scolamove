@@ -440,6 +440,7 @@ export function nouveauDossier(partiel: Partial<Dossier> = {}): Dossier {
     retour: "",
     jours: 0,
     nuits: 0,
+    nuitsForcees: null,
     periode: "",
     eleves: 0,
     accompagnateurs: 0,
