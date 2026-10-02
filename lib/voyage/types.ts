@@ -134,6 +134,8 @@ export type Tarif = {
   acomptePct: number;
   // Afficher le prix par poste (transport, hébergement…) sur le devis.
   afficherPostes: boolean;
+  // Joindre les conditions de vente à la suite du devis.
+  joindreCgv: boolean;
 };
 
 export type Textes = {

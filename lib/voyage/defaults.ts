@@ -346,7 +346,7 @@ export const CONSIGNES_DEFAUT = [
 export const CONDITIONS_DEFAUT = [
   "Prix établi sous réserve de disponibilité des prestataires au moment de la réservation.",
   "Toute variation de l'effectif entraîne une révision du prix par personne.",
-  "Le solde est à régler au plus tard 30 jours avant le départ.",
+  "Échéancier : 40 % dix semaines avant le départ, solde à réception des documents de voyage.",
 ].join("\n");
 
 export const INTRO_DEFAUT =
@@ -447,7 +447,7 @@ export function nouveauDossier(partiel: Partial<Dossier> = {}): Dossier {
     conducteurs: 1,
     programme: [],
     prestations: [],
-    tarif: { marge: 5, gratuites: 0, arrondi: 1, prixFige: null, validiteJours: 30, acomptePct: 30, afficherPostes: false },
+    tarif: { marge: 5, gratuites: 0, arrondi: 1, prixFige: null, validiteJours: 30, acomptePct: 30, afficherPostes: false, joindreCgv: true },
     textes: {
       intro: INTRO_DEFAUT,
       comprend: "",

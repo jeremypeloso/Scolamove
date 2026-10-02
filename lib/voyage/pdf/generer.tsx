@@ -1,6 +1,8 @@
 import { pdf } from "@react-pdf/renderer";
 import { calculer } from "../calcul";
+import { lireCgv } from "../store";
 import type { Dossier, Prestataire } from "../types";
+import { CgvPdf } from "./CgvPdf";
 import { DevisPdf } from "./DevisPdf";
 import { FeuilleRoutePdf } from "./FeuilleRoutePdf";
 
@@ -30,7 +32,13 @@ export async function chargerLogo(): Promise<string> {
 
 export async function devisBlob(dossier: Dossier): Promise<Blob> {
   const logo = await chargerLogo();
-  return pdf(<DevisPdf dossier={dossier} calcul={calculer(dossier)} logo={logo} />).toBlob();
+  const cgv = dossier.tarif.joindreCgv ? (await lireCgv()).texte : "";
+  return pdf(<DevisPdf dossier={dossier} calcul={calculer(dossier)} logo={logo} cgv={cgv} />).toBlob();
+}
+
+export async function cgvBlob(texte: string): Promise<Blob> {
+  const logo = await chargerLogo();
+  return pdf(<CgvPdf texte={texte} logo={logo} />).toBlob();
 }
 
 export async function feuilleRouteBlob(dossier: Dossier, prestataires: Prestataire[]): Promise<Blob> {

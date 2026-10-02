@@ -122,6 +122,9 @@ export default function PageVoyages() {
           <strong>Devis et dossiers de voyage</strong>
           <span>Du premier devis à la feuille de route</span>
         </div>
+        <Link className="vg-btn" href="/admin/voyages/cgv">
+          Conditions de vente
+        </Link>
         <button type="button" className="vg-btn" disabled={occupe} onClick={ouvrirAnciens}>
           Reprendre un devis express
         </button>

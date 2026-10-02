@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { AGENCE } from "@/lib/voyage/agence";
 import { figerVersion } from "@/lib/voyage/actions";
@@ -122,6 +123,19 @@ export function OngletDevis({ d, maj, calcul, allerA }: PropsOnglet) {
               Montrer la répartition du prix par poste (transport, hébergement…)
             </label>
             <span className="vg-aide">Le client ne voit jamais les prix d&apos;achat ni les marges.</span>
+          </div>
+          <div className="vg-champ vg-champ-large">
+            <span className="vg-label">Conditions de vente</span>
+            <label className="vg-coche">
+              <input type="checkbox" checked={d.tarif.joindreCgv} onChange={(e) => tarif({ joindreCgv: e.target.checked })} />
+              Joindre les conditions de vente à la suite du devis
+            </label>
+            <span className="vg-aide">
+              Le même texte pour tous les dossiers.{" "}
+              <Link className="vg-lien" href="/admin/voyages/cgv">
+                Modifier les conditions
+              </Link>
+            </span>
           </div>
         </div>
       </Bloc>

@@ -4,6 +4,7 @@ import { CATEGORIES, libellePayant, prixClient, type Calcul } from "../calcul";
 import { nuitsHebergement } from "../defaults";
 import { dateDuJour, effectifTexte, formatDate, formatJour, periodeTexte } from "../programme";
 import type { Dossier } from "../types";
+import { PagesCgv } from "./CgvPdf";
 import { C, Entete, Fiche, Paragraphes, Pied, Puces, s } from "./commun";
 
 function dateFr(date: Date): string {
@@ -14,13 +15,17 @@ export function DevisPdf({
   dossier: d,
   calcul,
   logo,
+  cgv = "",
   date = new Date(),
 }: {
   dossier: Dossier;
   calcul: Calcul;
   logo: string;
+  // Texte des conditions de vente ; vide : le devis part sans.
+  cgv?: string;
   date?: Date;
 }) {
+  const avecCgv = d.tarif.joindreCgv && cgv.trim().length > 0;
   const version = d.versions.length + 1;
   const validite = new Date(date.getTime() + d.tarif.validiteJours * 86400000);
   const nuits = nuitsHebergement(d);
@@ -203,9 +208,10 @@ export function DevisPdf({
             `Devis valable jusqu'au ${dateFr(validite)}.`,
             `Prix calculé pour ${calcul.payants} participant${calcul.payants > 1 ? "s" : ""} payant${calcul.payants > 1 ? "s" : ""}.`,
             d.tarif.acomptePct > 0
-              ? `Acompte de ${d.tarif.acomptePct} % à la confirmation, soit ${prixClient(Math.round(calcul.totalVente * d.tarif.acomptePct) / 100)}.`
+              ? `Acompte de ${d.tarif.acomptePct} % à la signature du contrat, soit ${prixClient(Math.round(calcul.totalVente * d.tarif.acomptePct) / 100)}.`
               : "",
             d.textes.conditions,
+            avecCgv ? "Les conditions générales et particulières de vente jointes font partie de ce devis." : "",
           ]
             .filter(Boolean)
             .join("\n")}
@@ -217,17 +223,20 @@ export function DevisPdf({
             <Text style={[s.gras, { marginTop: 8 }]}>{d.suiviPar || AGENCE.signataire}</Text>
             <Text>{AGENCE.nom}</Text>
           </View>
-          <View style={{ width: "50%", borderWidth: 1, borderColor: C.trait, borderRadius: 3, padding: 10, height: 110 }}>
+          <View style={{ width: "50%", borderWidth: 1, borderColor: C.trait, borderRadius: 3, padding: 10, height: 118 }}>
             <Text style={s.gras}>Bon pour accord</Text>
             <Text style={s.petit}>
               Devis {d.reference}, {prixClient(calcul.prixParPayant)} {qui}
             </Text>
+            {avecCgv ? <Text style={s.petit}>Je reconnais avoir pris connaissance des conditions de vente jointes.</Text> : null}
             <Text style={[s.petit, { marginTop: 6 }]}>Date, nom, cachet de l&apos;établissement et signature :</Text>
           </View>
         </View>
 
         <Pied />
       </Page>
+
+      {avecCgv ? <PagesCgv texte={cgv} logo={logo} reference={d.reference} /> : null}
     </Document>
   );
 }

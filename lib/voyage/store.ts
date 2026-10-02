@@ -1,5 +1,6 @@
 import { supabase } from "@/lib/supabase";
 import { avancementReservations, calculer } from "./calcul";
+import { CGV_DEFAUT } from "./cgv";
 import { normaliser } from "./defaults";
 import type { Dossier, DossierRow, Prestataire } from "./types";
 
@@ -100,4 +101,39 @@ export async function enregistrerPrestataire(p: Omit<Prestataire, "id"> & { id?:
 export async function supprimerPrestataire(id: string): Promise<void> {
   const { error } = await supabase.from("prestataires").delete().eq("id", id);
   if (error) throw new Error(error.message);
+}
+
+// --- Conditions de vente -------------------------------------------------------
+
+export type Cgv = { texte: string; majLe: string | null; personnalise: boolean };
+
+// Texte en vigueur : celui enregistré en base, sinon le texte d'origine. Une
+// base injoignable ou une table absente ne bloque jamais l'édition d'un devis.
+export async function lireCgv(): Promise<Cgv> {
+  try {
+    const { data, error } = await supabase
+      .from("parametres_agence")
+      .select("valeur, updated_at")
+      .eq("cle", "cgv")
+      .maybeSingle();
+    if (!error && data && typeof data.valeur === "string" && data.valeur.trim()) {
+      return { texte: data.valeur, majLe: data.updated_at || null, personnalise: true };
+    }
+  } catch {
+    // Repli sur le texte d'origine.
+  }
+  return { texte: CGV_DEFAUT, majLe: null, personnalise: false };
+}
+
+export async function enregistrerCgv(texte: string): Promise<void> {
+  const { error } = await supabase
+    .from("parametres_agence")
+    .upsert({ cle: "cgv", valeur: texte, updated_at: new Date().toISOString() }, { onConflict: "cle" });
+  if (error) {
+    throw new Error(
+      /parametres_agence|schema cache|does not exist/i.test(error.message)
+        ? "La table des paramètres n'existe pas encore : exécute supabase/migrations/20261003_parametres_agence.sql dans Supabase (SQL Editor)."
+        : error.message
+    );
+  }
 }

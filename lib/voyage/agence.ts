@@ -13,8 +13,8 @@ export const AGENCE = {
   email: "contact@scolamove.fr",
   site: "www.scolamove.fr",
   siret: "",
-  immatriculation: "", // numéro Atout France, ex. IM078XXXXXX
-  garant: "", // garant financier
+  immatriculation: "IM092130023", // numéro Atout France, ex. IM078XXXXXX
+  garant: "AXA IARD", // garant financier
   assureur: "", // assureur responsabilité civile professionnelle
   signataire: "Jérémy",
   urgenceTelephone: "",

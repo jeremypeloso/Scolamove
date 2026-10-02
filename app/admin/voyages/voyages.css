@@ -354,3 +354,18 @@ select.vg-input { padding-right: 4px; }
 @media (prefers-reduced-motion: no-preference) {
   .vg-jauge span, .vg-barre-poste span { transition: width 0.25s ease; }
 }
+
+/* --- Conditions de vente ---------------------------------------------------- */
+
+.vg-cgv { grid-template-columns: minmax(0, 1fr) 280px; align-items: start; }
+.vg-cgv > .vg-message { grid-column: 1 / -1; margin-top: 0; }
+.vg-cgv-texte { min-height: calc(100vh - 230px); resize: vertical; font-size: 13.5px; line-height: 1.55; padding: 12px 14px; }
+.vg-cgv-aide { position: sticky; top: 66px; }
+.vg-cgv-aide dl { display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; margin: 10px 0; font-size: 13px; }
+.vg-cgv-aide dt { font-family: ui-monospace, Consolas, monospace; font-size: 12.5px; white-space: pre; background: var(--fond); border: 1px solid var(--trait); border-radius: 3px; padding: 0 5px; align-self: start; }
+.vg-cgv-aide dd { color: var(--muet); }
+a.vg-lien { display: inline; }
+@media (max-width: 1180px) {
+  .vg-cgv { grid-template-columns: minmax(0, 1fr); }
+  .vg-cgv-aide { position: static; }
+}
